@@ -43,6 +43,67 @@ let state = {
   currentCalendarDate: new Date()
 };
 
+// --- Helper Functions for Data Migration and State Structuring ---
+function getLocalDateString(timestamp) {
+  return new Date(timestamp).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+}
+
+function migrateMemories(loaded) {
+  if (!Array.isArray(loaded)) return [];
+  if (loaded.length === 0) return [];
+  
+  // Check if already in new format: every item has an 'entries' array
+  const isNewFormat = loaded.every(item => item && typeof item === 'object' && 'entries' in item && Array.isArray(item.entries));
+  if (isNewFormat) {
+    return loaded;
+  }
+  
+  // Otherwise, it's the old flat format. Group them by local date.
+  const groupsMap = {};
+  loaded.forEach(m => {
+    const ts = m.timestamp || Date.now();
+    const dateStr = getLocalDateString(ts);
+    if (!groupsMap[dateStr]) {
+      groupsMap[dateStr] = [];
+    }
+    groupsMap[dateStr].push(m);
+  });
+  
+  const migrated = Object.keys(groupsMap).map(dateStr => {
+    const entries = groupsMap[dateStr];
+    // Sort entries chronologically (oldest first)
+    entries.sort((a, b) => a.timestamp - b.timestamp);
+    return {
+      date: dateStr,
+      entries: entries
+    };
+  });
+  
+  // Sort groups descending by latest timestamp
+  migrated.sort((a, b) => {
+    const maxA = Math.max(...a.entries.map(e => e.timestamp));
+    const maxB = Math.max(...b.entries.map(e => e.timestamp));
+    return maxB - maxA;
+  });
+  
+  return migrated;
+}
+
+function getFlatMemories() {
+  const flat = [];
+  state.memories.forEach(group => {
+    if (group && Array.isArray(group.entries)) {
+      flat.push(...group.entries);
+    }
+  });
+  // Sort descending by timestamp (newest first) for general dashboard/list usage
+  return flat.sort((a, b) => b.timestamp - a.timestamp);
+}
+
 // --- Initializer ---
 document.addEventListener("DOMContentLoaded", () => {
   initData();
@@ -55,9 +116,17 @@ function initData() {
   // Load memories
   const savedMemories = localStorage.getItem("mg_memories");
   if (savedMemories) {
-    state.memories = JSON.parse(savedMemories);
+    try {
+      const parsed = JSON.parse(savedMemories);
+      state.memories = migrateMemories(parsed);
+      saveMemoriesToStorage(); // Save migrated data
+    } catch (e) {
+      console.error("Failed to parse/migrate memories from localStorage", e);
+      state.memories = migrateMemories([...DEFAULT_MEMORIES]);
+      saveMemoriesToStorage();
+    }
   } else {
-    state.memories = [...DEFAULT_MEMORIES];
+    state.memories = migrateMemories([...DEFAULT_MEMORIES]);
     saveMemoriesToStorage();
   }
 
@@ -127,9 +196,11 @@ function renderDashboard(filterQuery = "") {
   const listEl = document.getElementById("entries-list");
   listEl.innerHTML = "";
 
+  const flat = getFlatMemories();
+
   // Filter memories
   const query = filterQuery.toLowerCase().trim();
-  const filteredMemories = state.memories.filter(m => 
+  const filteredMemories = flat.filter(m => 
     m.title.toLowerCase().includes(query) || 
     m.body.toLowerCase().includes(query) ||
     m.moodWord.toLowerCase().includes(query)
@@ -175,8 +246,8 @@ function renderDashboard(filterQuery = "") {
   }
 
   // Update Stats & Header
-  document.getElementById("header-memory-count").textContent = state.memories.length;
-  document.getElementById("stats-total-memories").textContent = state.memories.length;
+  document.getElementById("header-memory-count").textContent = flat.length;
+  document.getElementById("stats-total-memories").textContent = flat.length;
 
   // Render profile avatar across all views
   const avatarElements = [
@@ -194,10 +265,11 @@ function renderDashboard(filterQuery = "") {
 }
 
 function calculateStreak() {
-  if (state.memories.length === 0) return 0;
+  const flat = getFlatMemories();
+  if (flat.length === 0) return 0;
   
   // Sort timestamps descending
-  const dates = state.memories
+  const dates = flat
     .map(m => new Date(m.timestamp).setHours(0, 0, 0, 0))
     .sort((a, b) => b - a);
     
@@ -236,8 +308,9 @@ function loadProfileFields() {
 
 function calculateGardenAge() {
   // Let's check first memory timestamp
-  if (state.memories.length === 0) return "Just born!";
-  const oldestTime = Math.min(...state.memories.map(m => m.timestamp));
+  const flat = getFlatMemories();
+  if (flat.length === 0) return "Just born!";
+  const oldestTime = Math.min(...flat.map(m => m.timestamp));
   const diffTime = Math.abs(Date.now() - oldestTime);
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} old`;
@@ -258,14 +331,15 @@ function resetPlantWorkspace() {
   document.getElementById("image-preview").src = "";
 }
 
-// --- My Garden Renderer (Plant Pots) ---
+// --- My Garden Renderer (White cards matching left mockup) ---
 function renderMyGarden(filterQuery = "") {
   const gridEl = document.getElementById("garden-plants-grid");
   if (!gridEl) return;
   gridEl.innerHTML = "";
 
+  const flat = getFlatMemories();
   const query = filterQuery.toLowerCase().trim();
-  const filteredMemories = state.memories.filter(m => 
+  const filteredMemories = flat.filter(m => 
     m.title.toLowerCase().includes(query) || 
     m.body.toLowerCase().includes(query) ||
     m.moodWord.toLowerCase().includes(query)
@@ -274,7 +348,7 @@ function renderMyGarden(filterQuery = "") {
   filteredMemories.sort((a, b) => b.timestamp - a.timestamp);
 
   const countEl = document.getElementById("garden-memory-count");
-  if (countEl) countEl.textContent = state.memories.length;
+  if (countEl) countEl.textContent = flat.length;
 
   const profileAvatar = document.getElementById("btn-to-profile-garden") ? document.getElementById("btn-to-profile-garden").querySelector("img") : null;
   if (profileAvatar) {
@@ -304,26 +378,15 @@ function renderMyGarden(filterQuery = "") {
 
   filteredMemories.forEach(memory => {
     const card = document.createElement("div");
-    card.className = "plant-pot-card";
-    
-    const dateFormatted = new Date(memory.timestamp).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric"
-    });
+    card.className = "garden-memory-card";
 
     card.innerHTML = `
-      <div class="plant-drawing">
-        <span class="plant-flower">${memory.moodEmoji || "🌸"}</span>
-        <div class="plant-stem">
-          <div class="plant-leaf-left"></div>
-          <div class="plant-leaf-right"></div>
-        </div>
-        <div class="plant-pot-rim"></div>
-        <div class="plant-pot"></div>
+      <div class="garden-memory-card-header">
+        <span>${memory.moodEmoji || "🌸"}</span>
+        <span>${escapeHTML(memory.title)}</span>
       </div>
-      <h4 class="plant-title" title="${escapeHTML(memory.title)}">${escapeHTML(memory.title)}</h4>
-      <span class="plant-date">${dateFormatted}</span>
+      <p class="garden-memory-card-body">${escapeHTML(memory.body)}</p>
+      ${memory.image ? `<img src="${memory.image}" alt="Memory illustration" class="garden-memory-card-img-preview">` : ""}
     `;
 
     card.addEventListener("click", () => {
@@ -354,6 +417,11 @@ function renderMoodCalendar() {
     profileAvatar.src = state.profile.avatar;
   }
 
+  const flat = getFlatMemories();
+
+  const countEl = document.getElementById("mood-memory-count");
+  if (countEl) countEl.textContent = flat.length;
+
   // Update all sidebars active state
   document.querySelectorAll(".sidebar-nav").forEach(nav => {
     nav.querySelectorAll(".nav-item").forEach(item => {
@@ -364,6 +432,37 @@ function renderMoodCalendar() {
       }
     });
   });
+
+  // Calculate mood counts dynamically
+  let happyCount = 0;
+  let sadCount = 0;
+  let angryCount = 0;
+  let otherCount = 0;
+
+  flat.forEach(m => {
+    const moodWord = (m.moodWord || "").toLowerCase().trim();
+    if (["happy", "joy", "excited", "cheerful", "glad", "peaceful", "calm", "relaxing", "cozy", "content", "relaxed"].some(w => moodWord.includes(w))) {
+      happyCount++;
+    } else if (["sad", "thoughtful", "reflective", "melancholy", "nostalgic", "tired", "weary", "lonely"].some(w => moodWord.includes(w))) {
+      sadCount++;
+    } else if (["angry", "mad", "annoyed", "stressed", "anxious", "worried", "scared"].some(w => moodWord.includes(w))) {
+      angryCount++;
+    } else {
+      otherCount++;
+    }
+  });
+
+  const happyStatEl = document.getElementById("stat-happy-days");
+  if (happyStatEl) happyStatEl.textContent = `${happyCount} Happy day${happyCount === 1 ? "" : "s"}`;
+
+  const sadStatEl = document.getElementById("stat-sad-days");
+  if (sadStatEl) sadStatEl.textContent = `${sadCount} sad day${sadCount === 1 ? "" : "s"}`;
+
+  const angryStatEl = document.getElementById("stat-angry-days");
+  if (angryStatEl) angryStatEl.textContent = `${angryCount} angry day${angryCount === 1 ? "" : "s"}`;
+
+  const otherStatEl = document.getElementById("stat-other-days");
+  if (otherStatEl) otherStatEl.textContent = `${otherCount} day${otherCount === 1 ? "" : "s"}`;
 
   const gridEl = document.getElementById("calendar-grid-cells");
   if (!gridEl) return;
@@ -394,7 +493,7 @@ function renderMoodCalendar() {
     numLabel.textContent = day;
     cell.appendChild(numLabel);
 
-    const dayMemories = state.memories.filter(m => {
+    const dayMemories = flat.filter(m => {
       const memoryDate = new Date(m.timestamp);
       return memoryDate.getFullYear() === year &&
              memoryDate.getMonth() === month &&
@@ -405,10 +504,22 @@ function renderMoodCalendar() {
       dayMemories.sort((a, b) => b.timestamp - a.timestamp);
       const mainMemory = dayMemories[0];
 
+      const emojiWrapper = document.createElement("div");
+      emojiWrapper.className = "calendar-cell-emoji-wrapper";
+
       const emojiSpan = document.createElement("span");
       emojiSpan.className = "calendar-cell-emoji";
       emojiSpan.textContent = mainMemory.moodEmoji || "🌸";
-      cell.appendChild(emojiSpan);
+      emojiWrapper.appendChild(emojiSpan);
+
+      if (dayMemories.length > 1) {
+        const badgeSpan = document.createElement("span");
+        badgeSpan.className = "calendar-cell-badge";
+        badgeSpan.textContent = `+${dayMemories.length - 1}`;
+        emojiWrapper.appendChild(badgeSpan);
+      }
+
+      cell.appendChild(emojiWrapper);
 
       const moodWord = (mainMemory.moodWord || "").toLowerCase().trim();
       let moodClass = "cell-mood-default";
@@ -426,7 +537,12 @@ function renderMoodCalendar() {
       cell.classList.add(moodClass);
 
       cell.addEventListener("click", () => {
-        openMemoryDetailsModal(mainMemory);
+        const dateFormatted = new Date(year, month, day).toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        });
+        openDayDetailsModal(dayMemories, dateFormatted);
       });
     }
 
@@ -438,6 +554,10 @@ function renderMoodCalendar() {
 function openMemoryDetailsModal(memory) {
   const modal = document.getElementById("memory-details-modal");
   if (!modal) return;
+
+  // Show single view, hide multi view
+  document.getElementById("modal-single-view").classList.remove("hidden-view");
+  document.getElementById("modal-multi-view").classList.add("hidden-view");
 
   document.getElementById("modal-mood-emoji").textContent = memory.moodEmoji || "🌸";
   document.getElementById("modal-memory-title").textContent = memory.title;
@@ -459,6 +579,53 @@ function openMemoryDetailsModal(memory) {
     modalImg.src = "";
     modalImg.classList.add("hidden-view");
   }
+
+  modal.classList.remove("hidden-view");
+}
+
+function openDayDetailsModal(dayMemories, dateStr) {
+  const modal = document.getElementById("memory-details-modal");
+  if (!modal) return;
+
+  // Hide single view, show multi view
+  document.getElementById("modal-single-view").classList.add("hidden-view");
+  document.getElementById("modal-multi-view").classList.remove("hidden-view");
+
+  // Set header info
+  document.getElementById("modal-multi-date").textContent = dateStr;
+  document.getElementById("modal-multi-count").textContent = `${dayMemories.length} ${dayMemories.length === 1 ? "memory" : "memories"}`;
+
+  // Sort day memories chronologically (oldest first, i.e., ascending timestamp)
+  const sortedMemories = [...dayMemories].sort((a, b) => a.timestamp - b.timestamp);
+
+  const container = document.getElementById("modal-multi-body");
+  container.innerHTML = "";
+
+  sortedMemories.forEach(memory => {
+    const entry = document.createElement("div");
+    entry.className = "modal-day-entry";
+
+    const timeFormatted = new Date(memory.timestamp).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit"
+    });
+
+    entry.innerHTML = `
+      <div class="modal-day-entry-header">
+        <span class="modal-day-entry-emoji">${memory.moodEmoji || "🌸"}</span>
+        <div class="modal-day-entry-meta">
+          <div class="modal-day-entry-title-row">
+            <h4 class="modal-day-entry-title">${escapeHTML(memory.title)}</h4>
+            <span class="modal-day-entry-time">${timeFormatted}</span>
+          </div>
+          <span class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">${escapeHTML(memory.moodWord || "happy")}</span>
+        </div>
+      </div>
+      <p class="modal-day-entry-body">${escapeHTML(memory.body)}</p>
+      ${memory.image ? `<img src="${memory.image}" alt="Memory illustration" class="modal-day-entry-image">` : ""}
+    `;
+    container.appendChild(entry);
+  });
 
   modal.classList.remove("hidden-view");
 }
@@ -664,7 +831,14 @@ function setupEventListeners() {
       image: state.currentUploadedImage
     };
 
-    state.memories.unshift(newMemory);
+    const dateStr = getLocalDateString(newMemory.timestamp);
+    let group = state.memories.find(g => g.date === dateStr);
+    if (!group) {
+      group = { date: dateStr, entries: [] };
+      state.memories.unshift(group);
+    }
+    group.entries.unshift(newMemory);
+
     saveMemoriesToStorage();
     navigateTo("view-dashboard", "backward");
   };

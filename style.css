@@ -136,9 +136,10 @@ button {
   padding: 20px;
 }
 
-.mascot-card {
-  width: 200px;
-  height: 200px;
+.signin-banner-container {
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 1.15;
   background: #fdfafd;
   border-radius: var(--border-radius-large);
   display: flex;
@@ -151,12 +152,12 @@ button {
   transition: var(--transition);
 }
 
-.mascot-card:hover {
+.signin-banner-container:hover {
   transform: translateY(-5px);
   box-shadow: 0 15px 30px rgba(140, 103, 171, 0.12);
 }
 
-.bunny-mascot-img {
+.signin-banner-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -368,6 +369,7 @@ button {
   flex-direction: column;
   gap: 30px;
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: 85vh;
 }
 
@@ -1402,6 +1404,8 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   padding: 24px;
   box-shadow: 0 4px 15px rgba(140, 103, 171, 0.03);
   margin-top: 20px;
+  width: 100%;
+  max-width: 520px;
 }
 
 .calendar-header {
@@ -1440,7 +1444,7 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
 
 .calendar-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   text-align: center;
   font-weight: 700;
   color: var(--text-secondary);
@@ -1452,7 +1456,7 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
 
 .calendar-grid-cells {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1462,12 +1466,14 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   border-radius: var(--border-radius-med);
   border: 1px solid var(--border-color);
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
   position: relative;
   cursor: pointer;
   transition: var(--transition);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .calendar-cell:not(.empty-cell):hover {
@@ -1484,16 +1490,116 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
 }
 
 .calendar-cell-num {
-  font-size: 0.85rem;
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-secondary);
+  line-height: 1;
+}
+
+.calendar-cell-emoji-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 10px; /* Accounts for absolute day number */
 }
 
 .calendar-cell-emoji {
-  font-size: 1.5rem;
-  align-self: center;
-  margin-bottom: 4px;
+  font-size: 1.3rem;
+  line-height: 1;
   animation: cellPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.calendar-cell-badge {
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Day Details Modal (Chronological Multi View) Styling */
+.modal-multi-body::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-multi-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-multi-body::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.modal-day-entry {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-med);
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.modal-day-entry-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.modal-day-entry-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.modal-day-entry-meta {
+  flex: 1;
+}
+
+.modal-day-entry-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.modal-day-entry-title {
+  font-size: 1.1rem;
+  font-family: var(--font-serif);
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: 600;
+}
+
+.modal-day-entry-time {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.modal-day-entry-body {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 4px 0 0 0;
+  white-space: pre-wrap;
+}
+
+.modal-day-entry-image {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--border-radius-sm);
+  margin-top: 8px;
+  border: 1px solid var(--border-color);
 }
 
 @keyframes cellPop {
@@ -1647,3 +1753,99 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   from { transform: translateY(24px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* ==========================================================================
+   Garden Layout: White Grid Cards (Matching Left Mockup)
+   ========================================================================== */
+.garden-memories-card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.garden-memory-card {
+  background: #ffffff;
+  border-radius: var(--border-radius-med);
+  border: 1.5px solid var(--border-color);
+  padding: 24px;
+  width: 260px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(140, 103, 171, 0.02);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.garden-memory-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(140, 103, 171, 0.08);
+  border-color: var(--primary);
+}
+
+.garden-memory-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-family-title);
+}
+
+.garden-memory-card-body {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text-primary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  flex-grow: 1;
+}
+
+.garden-memory-card-img-preview {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--border-radius-small);
+  margin-top: 4px;
+  border: 1px solid var(--border-color);
+}
+
+/* ==========================================================================
+   Mood Layout: Statistics Card (Matching Right Mockup)
+   ========================================================================== */
+.mood-stats-card {
+  background: #ffffff;
+  border-radius: var(--border-radius-large);
+  border: 1.5px solid var(--border-color);
+  padding: 36px 40px;
+  box-shadow: 0 4px 15px rgba(140, 103, 171, 0.03);
+  margin-bottom: 28px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.mood-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 32px;
+}
+
+.mood-stats-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mood-stat-text {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+

@@ -1,0 +1,16 @@
+{
+  "name": "memory-garden",
+  "version": "1.0.0",
+  "description": "Cozy Memory Garden web application",
+  "main": "app.js",
+  "scripts": {
+    "dev": "bunx http-server -p 8081"
+  },
+  "keywords": [
+    "cozy",
+    "diary",
+    "garden"
+  ],
+  "author": "",
+  "license": "ISC"
+}
