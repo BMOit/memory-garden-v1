@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Garden - A Safe Place for Your Thoughts</title>
+  <!-- Google Fonts for cozy aesthetic: Outfit for headings, Nunito for rounded body text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300..900;1,300..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div id="app-container">
+    
+    <!-- ================= SIGN IN VIEW ================= -->
+    <div id="view-signin" class="view active-view">
+      <div class="signin-container">
+        <div class="signin-left">
+          <div class="mascot-card">
+            <img src="assets/bunny_mascot.png" alt="Memory Garden Mascot" class="bunny-mascot-img">
+          </div>
+          <h1>Your Memory Garden 🪴</h1>
+          <p class="subtitle">A safe place for your thoughts ✨</p>
+          <p class="desc">Your private space for every chapter</p>
+        </div>
+        <div class="signin-right">
+          <div class="form-card">
+            <h2>Welcome Back 🌸</h2>
+            <p class="form-subtitle">Continue writing your story.</p>
+            <form id="form-login">
+              <div class="input-group">
+                <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
+              </div>
+              <div class="input-group">
+                <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+              </div>
+              <button type="submit" class="btn-primary">Sign In</button>
+              <a href="#" class="forgot-link" id="link-forgot-password">Forgot password?</a>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= DASHBOARD VIEW ================= -->
+    <div id="view-dashboard" class="view hidden-view">
+      <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+          <div class="sidebar-brand">
+            <img src="assets/bunny_mascot.png" alt="Logo" class="sidebar-logo">
+            <span class="brand-name">Garden</span>
+          </div>
+          <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-view="dashboard">
+              <span class="nav-icon">🏠</span> Home
+            </a>
+            <a href="#" class="nav-item" data-view="plant">
+              <span class="nav-icon">🌱</span> Plant Memory
+            </a>
+            <a href="#" class="nav-item" data-view="my-garden" id="nav-my-garden">
+              <span class="nav-icon">🏡</span> My Garden
+            </a>
+            <a href="#" class="nav-item" data-view="mood" id="nav-mood">
+              <span class="nav-icon">🌸</span> Mood
+            </a>
+            <a href="#" class="nav-item" data-view="profile">
+              <span class="nav-icon">⚙️</span> Settings
+            </a>
+          </nav>
+          <div class="sidebar-footer">
+            <a href="#" class="nav-item logout-link" id="btn-logout-sidebar">
+              <span class="nav-icon">🚪</span> Log out
+            </a>
+          </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+          <header class="topbar">
+            <div class="search-wrapper">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="search-input" placeholder="Search memories...">
+              <span class="mic-icon">🎤</span>
+            </div>
+            <div class="topbar-right">
+              <div class="leaf-counter">
+                <span class="leaf-icon">🌱</span>
+                <span id="header-memory-count" class="counter-num">0</span>
+              </div>
+              <button class="profile-avatar-btn" id="btn-to-profile" title="View Profile">
+                <img src="assets/bunny_mascot.png" alt="Profile Avatar" class="profile-avatar-img">
+              </button>
+            </div>
+          </header>
+
+          <div class="dashboard-grid">
+            <!-- Left Side: Recent Entries -->
+            <section class="entries-section">
+              <h3>Recent Entries</h3>
+              <div id="entries-list" class="entries-list">
+                <!-- Dynamic cards populated by JavaScript -->
+              </div>
+            </section>
+
+            <!-- Right Side: Stats & Actions -->
+            <section class="stats-section">
+              <div class="stats-card memories-planted-card">
+                <div class="stat-content">
+                  <span class="stat-emoji">🌱</span>
+                  <div class="stat-info">
+                    <span class="stat-number" id="stats-total-memories">0</span>
+                    <span class="stat-label">total memories planted</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="stats-card day-streak-card">
+                <div class="stat-content">
+                  <span class="stat-emoji">☀️</span>
+                  <div class="stat-info">
+                    <span class="stat-number" id="stats-streak">0</span>
+                    <span class="stat-label">Day Streak</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="welcome-box">
+                <p class="welcome-text">Welcome back 🌸</p>
+                <p class="welcome-prompt">What memory would you like to plant today?</p>
+                <button class="btn-fab" id="btn-fab-plant" title="Plant a Memory">+</button>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ================= PLANT A MEMORY VIEW ================= -->
+    <div id="view-plant" class="view hidden-view">
+      <div class="plant-container">
+        <header class="plant-header">
+          <button class="btn-back" id="btn-plant-back" title="Back to Dashboard">←</button>
+          <div class="plant-title-wrapper">
+            <img src="assets/bunny_mascot.png" alt="Logo" class="plant-logo">
+            <h2>Plant a Memory</h2>
+          </div>
+          <div class="spacer"></div>
+        </header>
+
+        <div class="plant-workspace">
+          <div class="workspace-controls">
+            <!-- Image upload button -->
+            <button class="control-btn" id="btn-trigger-upload">
+              <span class="control-icon">➕</span> Image
+            </button>
+            <input type="file" id="image-upload-input" accept="image/*" class="hidden-input">
+
+            <!-- Emoji dropdown trigger -->
+            <div class="emoji-dropdown-wrapper">
+              <button class="control-btn" id="btn-toggle-emoji">
+                <span class="control-icon">➕</span> add garden emoji <span id="selected-emoji-preview"></span>
+              </button>
+              <div class="emoji-popover" id="emoji-popover">
+                <div class="emoji-list">
+                  <span class="emoji-item">🌸</span>
+                  <span class="emoji-item">🪴</span>
+                  <span class="emoji-item">🐰</span>
+                  <span class="emoji-item">☀️</span>
+                  <span class="emoji-item">🌙</span>
+                  <span class="emoji-item">🍵</span>
+                  <span class="emoji-item">🏡</span>
+                  <span class="emoji-item">🍄</span>
+                  <span class="emoji-item">🌻</span>
+                  <span class="emoji-item">🍃</span>
+                  <span class="emoji-item">🧸</span>
+                  <span class="emoji-item">🍰</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mood text input -->
+            <div class="mood-input-wrapper">
+              <input type="text" id="input-mood-desc" placeholder="describe your mood in 1 word">
+            </div>
+
+            <!-- Save Bookmark Button -->
+            <button class="control-btn-icon" id="btn-bookmark-save" title="Save Memory">
+              <span class="bookmark-icon">🔖</span>
+            </button>
+          </div>
+
+          <!-- Selected Image Preview Container -->
+          <div id="image-preview-container" class="image-preview-container hidden-view">
+            <img id="image-preview" src="" alt="Memory Image Preview">
+            <button id="btn-remove-image" class="btn-remove-image" title="Remove Image">×</button>
+          </div>
+
+          <!-- Memory Text Area -->
+          <div class="textarea-container">
+            <input type="text" id="input-memory-title" class="memory-title-input" placeholder="Title your memory (e.g. Late Night Thoughts)..." required>
+            <textarea id="textarea-memory-body" class="memory-body-textarea" placeholder="plant your memory..."></textarea>
+          </div>
+
+          <!-- Main Submit Button -->
+          <div class="submit-bar">
+            <button id="btn-plant-submit" class="btn-primary btn-plant">Plant Memory 🪴</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= PROFILE VIEW ================= -->
+    <div id="view-profile" class="view hidden-view">
+      <div class="profile-container">
+        <header class="profile-header">
+          <button class="btn-back" id="btn-profile-back" title="Back to Dashboard">←</button>
+          <h2>Profile</h2>
+        </header>
+
+        <div class="profile-content-card">
+          <div class="profile-layout">
+            <!-- Left Side: Avatar Display -->
+            <div class="profile-left">
+              <div class="large-avatar-container">
+                <img src="assets/bunny_mascot.png" alt="Profile Picture" class="profile-large-avatar" id="profile-display-avatar">
+                <div class="avatar-overlay" id="btn-change-avatar">
+                  <span>Change</span>
+                </div>
+              </div>
+              <input type="file" id="avatar-upload-input" accept="image/*" class="hidden-input">
+            </div>
+
+            <!-- Right Side: Form Fields -->
+            <div class="profile-right">
+              <form id="form-profile">
+                <div class="profile-field">
+                  <label for="profile-username">username</label>
+                  <input type="text" id="profile-username" value="Bunny Lover">
+                </div>
+                <div class="profile-field">
+                  <label for="profile-garden-age">your garden age</label>
+                  <input type="text" id="profile-garden-age" value="12 days old" readonly>
+                </div>
+                <div class="profile-field">
+                  <label for="profile-dob">date of birth</label>
+                  <input type="date" id="profile-dob" value="2000-06-09">
+                </div>
+                <div class="profile-field">
+                  <label for="profile-email">email connected</label>
+                  <input type="email" id="profile-email" value="bunny@garden.com">
+                </div>
+
+                <div class="profile-actions">
+                  <button type="submit" class="btn-primary btn-save-profile">Save Changes 🌸</button>
+                  <button type="button" class="btn-secondary logout-btn" id="btn-logout-profile">log out</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MY GARDEN VIEW ================= -->
+    <div id="view-my-garden" class="view hidden-view">
+      <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+          <div class="sidebar-brand">
+            <img src="assets/bunny_mascot.png" alt="Logo" class="sidebar-logo">
+            <span class="brand-name">Garden</span>
+          </div>
+          <nav class="sidebar-nav">
+            <a href="#" class="nav-item" data-view="dashboard">
+              <span class="nav-icon">🏠</span> Home
+            </a>
+            <a href="#" class="nav-item" data-view="plant">
+              <span class="nav-icon">🌱</span> Plant Memory
+            </a>
+            <a href="#" class="nav-item active" data-view="my-garden">
+              <span class="nav-icon">🏡</span> My Garden
+            </a>
+            <a href="#" class="nav-item" data-view="mood">
+              <span class="nav-icon">🌸</span> Mood
+            </a>
+            <a href="#" class="nav-item" data-view="profile">
+              <span class="nav-icon">⚙️</span> Settings
+            </a>
+          </nav>
+          <div class="sidebar-footer">
+            <a href="#" class="nav-item logout-link">
+              <span class="nav-icon">🚪</span> Log out
+            </a>
+          </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+          <header class="topbar">
+            <div class="search-wrapper">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="search-input-garden" placeholder="Search garden memories...">
+            </div>
+            <div class="topbar-right">
+              <div class="leaf-counter">
+                <span class="leaf-icon">🌱</span>
+                <span id="garden-memory-count" class="counter-num">0</span>
+              </div>
+              <button class="profile-avatar-btn" id="btn-to-profile-garden" title="View Profile">
+                <img src="assets/bunny_mascot.png" alt="Profile Avatar" class="profile-avatar-img">
+              </button>
+            </div>
+          </header>
+
+          <div class="garden-header-text">
+            <h3>My Memory Garden 🏡</h3>
+            <p class="subtitle">Watch your thoughts bloom into flowers.</p>
+          </div>
+
+          <div id="garden-plants-grid" class="garden-plants-grid">
+            <!-- Dynamic terracotta plant pots populated by JavaScript -->
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ================= MOOD VIEW ================= -->
+    <div id="view-mood" class="view hidden-view">
+      <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+          <div class="sidebar-brand">
+            <img src="assets/bunny_mascot.png" alt="Logo" class="sidebar-logo">
+            <span class="brand-name">Garden</span>
+          </div>
+          <nav class="sidebar-nav">
+            <a href="#" class="nav-item" data-view="dashboard">
+              <span class="nav-icon">🏠</span> Home
+            </a>
+            <a href="#" class="nav-item" data-view="plant">
+              <span class="nav-icon">🌱</span> Plant Memory
+            </a>
+            <a href="#" class="nav-item" data-view="my-garden">
+              <span class="nav-icon">🏡</span> My Garden
+            </a>
+            <a href="#" class="nav-item active" data-view="mood">
+              <span class="nav-icon">🌸</span> Mood
+            </a>
+            <a href="#" class="nav-item" data-view="profile">
+              <span class="nav-icon">⚙️</span> Settings
+            </a>
+          </nav>
+          <div class="sidebar-footer">
+            <a href="#" class="nav-item logout-link">
+              <span class="nav-icon">🚪</span> Log out
+            </a>
+          </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+          <header class="topbar">
+            <div class="spacer"></div>
+            <div class="topbar-right">
+              <button class="profile-avatar-btn" id="btn-to-profile-mood" title="View Profile">
+                <img src="assets/bunny_mascot.png" alt="Profile Avatar" class="profile-avatar-img">
+              </button>
+            </div>
+          </header>
+
+          <div class="mood-header-text">
+            <h3>Mood Garden 🌸</h3>
+            <p class="subtitle">A monthly map of your emotions.</p>
+          </div>
+
+          <!-- Calendar Widget -->
+          <div class="calendar-container">
+            <div class="calendar-header">
+              <button class="calendar-nav-btn" id="btn-prev-month">←</button>
+              <h4 id="calendar-month-year">June 2026</h4>
+              <button class="calendar-nav-btn" id="btn-next-month">→</button>
+            </div>
+            <div class="calendar-weekdays">
+              <div>Sun</div>
+              <div>Mon</div>
+              <div>Tue</div>
+              <div>Wed</div>
+              <div>Thu</div>
+              <div>Fri</div>
+              <div>Sat</div>
+            </div>
+            <div id="calendar-grid-cells" class="calendar-grid-cells">
+              <!-- Dynamic calendar cells populated by JavaScript -->
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ================= LIGHTBOX DETAILS MODAL ================= -->
+    <div id="memory-details-modal" class="modal-overlay hidden-view">
+      <div class="modal-card">
+        <button id="btn-close-modal" class="btn-close-modal" title="Close">×</button>
+        <div class="modal-header">
+          <span id="modal-mood-emoji" class="modal-emoji">🌸</span>
+          <div class="modal-title-meta">
+            <h3 id="modal-memory-title">Memory Title</h3>
+            <div class="modal-meta-row">
+              <span id="modal-mood-word" class="entry-mood-badge">happy</span>
+              <span id="modal-memory-date" class="modal-date">June 9, 2026</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-body">
+          <p id="modal-memory-body">Memory contents go here...</p>
+          <img id="modal-memory-image" src="" alt="Memory preview" class="modal-img-preview hidden-view">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
