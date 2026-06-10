@@ -485,9 +485,9 @@ button {
 }
 
 .entries-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .entry-card {
@@ -499,6 +499,10 @@ button {
   transition: var(--transition);
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
 }
 
 .entry-card:hover {
@@ -507,111 +511,24 @@ button {
   border-color: var(--primary);
 }
 
-/* Polaroid Keepsake Card Sizing & Frame */
-.polaroid-card {
-  background: #ffffff;
-  padding: 16px 16px 20px 16px;
-  border-radius: 4px;
-  border: 1px solid rgba(140, 103, 171, 0.12);
-  box-shadow: 
-    0 6px 16px rgba(140, 103, 171, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.03);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
-  transform: rotate(var(--rotation, 0deg));
-  position: relative;
+.entry-card-text {
+  flex: 1;
+}
+
+.entry-card-thumbnail {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: var(--border-radius-small);
+  border: 1.5px solid var(--border-color);
   overflow: hidden;
-  height: 100%;
+  box-shadow: 0 2px 8px rgba(140, 103, 171, 0.04);
 }
 
-.polaroid-card:hover {
-  transform: translateY(-8px) scale(1.02) rotate(0deg) !important;
-  box-shadow: 
-    0 16px 32px rgba(60, 46, 79, 0.1),
-    0 6px 12px rgba(0, 0, 0, 0.03);
-  z-index: 10;
-}
-
-.polaroid-photo-slot {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background: #faf8fd;
-  border: 1px solid rgba(140, 103, 171, 0.06);
-  border-radius: 2px;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.polaroid-photo-slot img {
+.entry-card-thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.polaroid-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%);
-}
-
-.polaroid-placeholder-emoji {
-  font-size: 3.5rem;
-  filter: drop-shadow(0 4px 8px rgba(133, 95, 168, 0.15));
-  animation: floatEmoji 4s ease-in-out infinite alternate;
-}
-
-.polaroid-caption {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-family: var(--font-family-body);
-}
-
-.polaroid-title-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.polaroid-emoji {
-  font-size: 1.15rem;
-  line-height: 1.3;
-}
-
-.polaroid-title {
-  font-family: var(--font-family-title);
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.3;
-  word-break: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.polaroid-date {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-  margin-top: auto;
-  border-top: 1px dashed var(--border-color);
-  padding-top: 8px;
-}
-
-@keyframes floatEmoji {
-  from { transform: translateY(0) rotate(0deg); }
-  to { transform: translateY(-4px) rotate(4deg); }
 }
 
 .entry-header {
@@ -1280,51 +1197,8 @@ button {
 }
 
 
-/* ==========================================================================
-   View Transitions API Styles
-   ========================================================================== */
-::view-transition-group(root) {
-  animation: 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
-}
-
-/* Slide direction sliding animations using transform (performant) */
-@keyframes slide-to-left {
-  to { transform: translateX(-80px); opacity: 0; }
-}
-
-@keyframes slide-from-right {
-  from { transform: translateX(80px); opacity: 0; }
-}
-
-@keyframes slide-to-right {
-  to { transform: translateX(80px); opacity: 0; }
-}
-
-@keyframes slide-from-left {
-  from { transform: translateX(-80px); opacity: 0; }
-}
-
-/* Assign keyframes based on type */
-html:active-view-transition-type(forward)::view-transition-old(root) {
-  animation-name: slide-to-left;
-}
-html:active-view-transition-type(forward)::view-transition-new(root) {
-  animation-name: slide-from-right;
-}
-
-html:active-view-transition-type(backward)::view-transition-old(root) {
-  animation-name: slide-to-right;
-}
-html:active-view-transition-type(backward)::view-transition-new(root) {
-  animation-name: slide-from-left;
-}
-
 /* Accessibility: Respect user prefers-reduced-motion settings */
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(root) {
-    animation: none !important;
-  }
-  
   * {
     transition: none !important;
     animation: none !important;
@@ -1865,7 +1739,6 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   border-radius: var(--border-radius-med);
   border: 1.5px solid var(--border-color);
   padding: 24px;
-  width: 260px;
   min-height: 180px;
   display: flex;
   flex-direction: column;
@@ -1873,12 +1746,43 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   box-shadow: 0 4px 12px rgba(140, 103, 171, 0.02);
   cursor: pointer;
   transition: var(--transition);
+  box-sizing: border-box;
 }
 
 .garden-memory-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 20px rgba(140, 103, 171, 0.08);
   border-color: var(--primary);
+}
+
+.garden-memory-card.has-thumbnail {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.garden-memory-card-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.garden-memory-card-thumbnail {
+  width: 70px;
+  height: 70px;
+  flex-shrink: 0;
+  border-radius: var(--border-radius-small);
+  border: 1.5px solid var(--border-color);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(140, 103, 171, 0.04);
+}
+
+.garden-memory-card-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .garden-memory-card-header {
@@ -1901,15 +1805,6 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   flex-grow: 1;
-}
-
-.garden-memory-card-img-preview {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: var(--border-radius-small);
-  margin-top: 4px;
-  border: 1px solid var(--border-color);
 }
 
 /* ==========================================================================

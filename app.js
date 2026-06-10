@@ -315,65 +315,75 @@ function navigateTo(targetViewId, direction = "forward") {
     }
   };
 
-  // If View Transitions API is not supported
-  if (!document.startViewTransition) {
-    updateDOM();
-    return;
-  }
-
-  // Execute view transition with direction type
-  try {
-    document.startViewTransition({
-      update: updateDOM,
-      types: [direction]
-    });
-  } catch (e) {
-    console.warn("[navigateTo] startViewTransition object parameter failed, falling back to function parameter:", e);
-    try {
-      document.startViewTransition(updateDOM);
-    } catch (err) {
-      console.error("[navigateTo] startViewTransition fallback also failed:", err);
-      updateDOM();
-    }
-  }
+  updateDOM();
 }
 
 // --- Dashboard Renderer ---
-function createPolaroidCard(memory) {
+function createEntryCard(memory) {
   const card = document.createElement("div");
-  card.className = "polaroid-card";
+  card.className = "entry-card";
   card.dataset.id = memory.id;
-  
+
   const dateFormatted = new Date(memory.timestamp).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric"
   });
 
-  const photoHtml = memory.image 
-    ? `<img src="${memory.image}" alt="${escapeHTML(memory.title)}">` 
-    : `<div class="polaroid-placeholder"><span class="polaroid-placeholder-emoji">${memory.moodEmoji || "🌸"}</span></div>`;
+  const hasImage = !!memory.image;
+  card.classList.toggle("has-thumbnail", hasImage);
 
   card.innerHTML = `
-    <div class="polaroid-photo-slot">
-      ${photoHtml}
-    </div>
-    <div class="polaroid-caption">
-      <div class="polaroid-title-row">
-        <span class="polaroid-emoji">${memory.moodEmoji || "🌸"}</span>
-        <span class="polaroid-title">${escapeHTML(memory.title)}</span>
+    <div class="entry-card-text">
+      <div class="entry-header">
+        <div class="entry-title-wrap">
+          <span class="entry-emoji">${memory.moodEmoji || "🌸"}</span>
+          <h4 class="entry-title">${escapeHTML(memory.title)}</h4>
+        </div>
+        <div class="entry-meta">
+          <span class="entry-mood-badge">${escapeHTML(memory.moodWord || "happy")}</span>
+          <span class="entry-date">${dateFormatted}</span>
+        </div>
       </div>
-      <span class="polaroid-date">${dateFormatted}</span>
+      <p class="entry-body">${escapeHTML(memory.body)}</p>
     </div>
+    ${hasImage ? `
+      <div class="entry-card-thumbnail">
+        <img src="${memory.image}" alt="Memory thumbnail">
+      </div>
+    ` : ""}
   `;
 
-  // Assign stable random rotation based on memory timestamp ID
-  const rotations = [-2.5, -1.5, -0.8, 0.8, 1.5, 2.5];
-  const numId = parseInt(memory.id.replace(/\D/g, '')) || Date.now();
-  const rot = rotations[numId % rotations.length];
-  card.style.setProperty('--rotation', `${rot}deg`);
+  card.addEventListener("click", () => {
+    openMemoryDetailsModal(memory);
+  });
 
-  // Navigate to modal on click
+  return card;
+}
+
+function createGardenCard(memory) {
+  const card = document.createElement("div");
+  card.className = "garden-memory-card";
+  card.dataset.id = memory.id;
+
+  const hasImage = !!memory.image;
+  card.classList.toggle("has-thumbnail", hasImage);
+
+  card.innerHTML = `
+    <div class="garden-memory-card-text">
+      <div class="garden-memory-card-header">
+        <span>${memory.moodEmoji || "🌸"}</span>
+        <span>${escapeHTML(memory.title)}</span>
+      </div>
+      <p class="garden-memory-card-body">${escapeHTML(memory.body)}</p>
+    </div>
+    ${hasImage ? `
+      <div class="garden-memory-card-thumbnail">
+        <img src="${memory.image}" alt="Memory thumbnail">
+      </div>
+    ` : ""}
+  `;
+
   card.addEventListener("click", () => {
     openMemoryDetailsModal(memory);
   });
@@ -405,9 +415,8 @@ function renderDashboard(filterQuery = "") {
         <p>${filterQuery ? "No matching memories found." : "No memories planted yet. Let's grow your garden!"}</p>
       </div>
     `;
-  } else {
     filteredMemories.forEach(memory => {
-      const card = createPolaroidCard(memory);
+      const card = createEntryCard(memory);
       listEl.appendChild(card);
     });
   }
@@ -561,7 +570,7 @@ function renderMyGarden(filterQuery = "") {
   }
 
   filteredMemories.forEach(memory => {
-    const card = createPolaroidCard(memory);
+    const card = createGardenCard(memory);
     gridEl.appendChild(card);
   });
 }
