@@ -392,32 +392,42 @@ function createGardenCard(memory) {
 }
 
 function renderDashboard(filterQuery = "") {
-  const listEl = document.getElementById("entries-list");
-  listEl.innerHTML = "";
+  const recentEntriesContainer = document.getElementById("entries-list");
+  recentEntriesContainer.innerHTML = "";
 
   const flat = getFlatMemories();
 
-  // Filter memories
+  // Filter memories safely
   const query = filterQuery.toLowerCase().trim();
   const filteredMemories = flat.filter(m => 
-    m.title.toLowerCase().includes(query) || 
-    m.body.toLowerCase().includes(query) ||
-    m.moodWord.toLowerCase().includes(query)
+    (m.title || "").toLowerCase().includes(query) || 
+    (m.body || "").toLowerCase().includes(query) ||
+    (m.moodWord || "").toLowerCase().includes(query)
   );
 
   // Sorting: most recent first
   filteredMemories.sort((a, b) => b.timestamp - a.timestamp);
 
-  if (filteredMemories.length === 0) {
-    listEl.innerHTML = `
+  const memories = filteredMemories;
+
+  // Add requested debugging logs
+  console.log("Dashboard memories:", getFlatMemories());
+  console.log("Container:", recentEntriesContainer);
+  console.log("Entries count:", memories.length);
+
+  if (memories.length === 0) {
+    recentEntriesContainer.innerHTML = `
       <div class="no-entries-card" style="grid-column: 1 / -1; width: 100%;">
         <span style="font-size: 2rem;">🫙</span>
         <p>${filterQuery ? "No matching memories found." : "No memories planted yet. Let's grow your garden!"}</p>
       </div>
     `;
-    filteredMemories.forEach(memory => {
+  } else {
+    // Show only the latest 5 memories
+    const recentMemories = memories.slice(0, 5);
+    recentMemories.forEach(memory => {
       const card = createEntryCard(memory);
-      listEl.appendChild(card);
+      recentEntriesContainer.appendChild(card);
     });
   }
 
@@ -595,36 +605,6 @@ function renderMoodCalendar() {
   // Sync layout state
   syncLayoutState();
 
-  // Calculate mood counts dynamically
-  let happyCount = 0;
-  let sadCount = 0;
-  let angryCount = 0;
-  let otherCount = 0;
-
-  flat.forEach(m => {
-    const moodWord = (m.moodWord || "").toLowerCase().trim();
-    if (["happy", "joy", "excited", "cheerful", "glad", "peaceful", "calm", "relaxing", "cozy", "content", "relaxed"].some(w => moodWord.includes(w))) {
-      happyCount++;
-    } else if (["sad", "thoughtful", "reflective", "melancholy", "nostalgic", "tired", "weary", "lonely"].some(w => moodWord.includes(w))) {
-      sadCount++;
-    } else if (["angry", "mad", "annoyed", "stressed", "anxious", "worried", "scared"].some(w => moodWord.includes(w))) {
-      angryCount++;
-    } else {
-      otherCount++;
-    }
-  });
-
-  const happyStatEl = document.getElementById("stat-happy-days");
-  if (happyStatEl) happyStatEl.textContent = `${happyCount} Happy day${happyCount === 1 ? "" : "s"}`;
-
-  const sadStatEl = document.getElementById("stat-sad-days");
-  if (sadStatEl) sadStatEl.textContent = `${sadCount} sad day${sadCount === 1 ? "" : "s"}`;
-
-  const angryStatEl = document.getElementById("stat-angry-days");
-  if (angryStatEl) angryStatEl.textContent = `${angryCount} angry day${angryCount === 1 ? "" : "s"}`;
-
-  const otherStatEl = document.getElementById("stat-other-days");
-  if (otherStatEl) otherStatEl.textContent = `${otherCount} day${otherCount === 1 ? "" : "s"}`;
 
   const gridEl = document.getElementById("calendar-grid-cells");
   if (!gridEl) return;

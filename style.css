@@ -1353,7 +1353,8 @@ button {
   border: 1px solid var(--border-color);
   padding: 32px;
   box-shadow: 0 4px 15px rgba(140, 103, 171, 0.03);
-  margin-top: 20px;
+  margin: 0 auto;
+  max-width: 800px;
   width: 100%;
 }
 
@@ -1807,37 +1808,7 @@ button {
   flex-grow: 1;
 }
 
-/* ==========================================================================
-   Mood Layout: Statistics Card (Matching Right Mockup)
-   ========================================================================== */
-.mood-stats-card {
-  background: #ffffff;
-  border-radius: var(--border-radius-large);
-  border: 1px solid var(--border-color);
-  padding: 36px 40px;
-  box-shadow: 0 4px 15px rgba(140, 103, 171, 0.03);
-  margin-bottom: 28px;
-  width: 100%;
-}
 
-.mood-stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px 32px;
-}
-
-.mood-stats-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.mood-stat-text {
-  font-family: "Georgia", "Times New Roman", serif;
-  font-size: 1.15rem;
-  color: var(--text-primary);
-  font-weight: 500;
-}
 
 /* Modal Polaroid Detail Layout */
 .modal-detail-layout {
