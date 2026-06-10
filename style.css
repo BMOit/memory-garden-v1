@@ -38,20 +38,28 @@ body {
   background-image: 
     radial-gradient(at 0% 0%, hsla(270, 60%, 92%, 1) 0px, transparent 50%),
     radial-gradient(at 100% 100%, hsla(290, 60%, 93%, 1) 0px, transparent 50%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 #app-container {
   width: 100%;
-  max-width: 1280px;
-  min-height: 80vh;
-  margin: 20px;
+  min-height: 100vh;
   position: relative;
+}
+
+/* Base View Layout */
+.view {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#view-signin {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 40px;
 }
 
 /* Global Helpers */
@@ -265,22 +273,18 @@ button {
    ========================================================================== */
 .dashboard-container {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 260px 1fr;
   width: 100%;
   background: var(--card-bg);
-  border-radius: var(--border-radius-large);
-  box-shadow: var(--card-shadow);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  overflow: hidden;
-  min-height: 80vh;
+  min-height: 100vh;
 }
 
 /* Sidebar Styling */
 .sidebar {
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border-color);
-  padding: 30px 20px;
+  padding: 40px 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -364,13 +368,13 @@ button {
 
 /* Main Content Styling */
 .main-content {
-  padding: 30px;
+  padding: 40px 60px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 40px;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: 85vh;
+  max-height: 100vh;
 }
 
 /* Header Top Bar */
@@ -665,27 +669,17 @@ button {
 /* ==========================================================================
    Plant A Memory View Style
    ========================================================================== */
-.plant-container {
-  width: 100%;
-  max-width: 800px;
-  background: var(--card-bg);
+.plant-memory-card,
+.profile-settings-card {
+  background: #ffffff;
   border-radius: var(--border-radius-large);
-  box-shadow: var(--card-shadow);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  overflow: hidden;
-  padding: 30px;
+  border: 1px solid var(--border-color);
+  padding: 32px;
+  box-shadow: 0 4px 15px rgba(140, 103, 171, 0.03);
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.plant-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 16px;
 }
 
 .btn-back {
@@ -885,42 +879,43 @@ button {
 .textarea-container {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border-radius: var(--border-radius-med);
-  border: 1px solid var(--border-color);
-  padding: 20px;
-  min-height: 250px;
-  gap: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: auto;
+  gap: 16px;
 }
 
 .memory-title-input {
   font-family: var(--font-family-title);
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 600;
   border: none;
   outline: none;
   color: var(--text-primary);
   background: none;
   width: 100%;
-  border-bottom: 1.5px solid transparent;
-  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border-color);
+  padding: 8px 0;
+  transition: var(--transition);
 }
 
 .memory-title-input:focus {
-  border-bottom-color: var(--border-color);
+  border-bottom-color: var(--primary);
 }
 
 .memory-body-textarea {
-  font-family: var(--font-family-body);
-  font-size: 1rem;
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 1.1rem;
   border: none;
   outline: none;
   resize: none;
   background: none;
   width: 100%;
-  flex-grow: 1;
+  min-height: 260px;
   line-height: 1.6;
   color: var(--text-primary);
+  padding-top: 8px;
 }
 
 .submit-bar {
@@ -937,35 +932,7 @@ button {
 /* ==========================================================================
    Profile View Style
    ========================================================================== */
-.profile-container {
-  width: 100%;
-  max-width: 800px;
-  background: var(--card-bg);
-  border-radius: var(--border-radius-large);
-  box-shadow: var(--card-shadow);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  overflow: hidden;
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.profile-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 16px;
-}
-
-.profile-content-card {
-  background: #ffffff;
-  border-radius: var(--border-radius-med);
-  border: 1px solid var(--border-color);
-  padding: 30px;
-}
+/* Profile Content Card - now styled via .profile-settings-card */
 
 .profile-layout {
   display: grid;
@@ -1401,11 +1368,10 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   background: #ffffff;
   border-radius: var(--border-radius-large);
   border: 1px solid var(--border-color);
-  padding: 24px;
+  padding: 32px;
   box-shadow: 0 4px 15px rgba(140, 103, 171, 0.03);
   margin-top: 20px;
   width: 100%;
-  max-width: 520px;
 }
 
 .calendar-header {
@@ -1419,20 +1385,20 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
 
 .calendar-header h4 {
   font-family: var(--font-family-title);
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   color: var(--text-primary);
 }
 
 .calendar-nav-btn {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--primary-light);
   color: var(--primary);
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   transition: var(--transition);
 }
@@ -1457,7 +1423,7 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
 .calendar-grid-cells {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 12px;
 }
 
 .calendar-cell {
@@ -1489,7 +1455,7 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding: 4px;
+  padding: 8px;
 }
 
 .calendar-cell:not(.empty-cell):hover {
@@ -1507,9 +1473,9 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
 
 .calendar-cell-num {
   position: absolute;
-  top: 6px;
-  left: 8px;
-  font-size: 0.8rem;
+  top: 10px;
+  left: 12px;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-secondary);
   line-height: 1;
@@ -1519,12 +1485,12 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  margin-top: 8px; /* offsets the top day number */
+  gap: 6px;
+  margin-top: 12px; /* offsets the top day number */
 }
 
 .calendar-cell-emoji {
-  font-size: 1.3rem;
+  font-size: 1.6rem;
   line-height: 1;
   animation: cellPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -1532,9 +1498,9 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
 .calendar-cell-badge {
   background: var(--primary);
   color: #ffffff;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  padding: 1px 4px;
+  padding: 2px 6px;
   border-radius: 8px;
   line-height: 1;
   white-space: nowrap;
@@ -1838,12 +1804,11 @@ html:active-view-transition-type(backward)::view-transition-new(root) {
 .mood-stats-card {
   background: #ffffff;
   border-radius: var(--border-radius-large);
-  border: 1.5px solid var(--border-color);
+  border: 1px solid var(--border-color);
   padding: 36px 40px;
   box-shadow: 0 4px 15px rgba(140, 103, 171, 0.03);
   margin-bottom: 28px;
   width: 100%;
-  max-width: 520px;
 }
 
 .mood-stats-grid {

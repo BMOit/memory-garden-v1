@@ -195,23 +195,90 @@ function saveMemoriesToStorage() {
 
 function saveProfileToStorage() {
   localStorage.setItem("mg_profile", JSON.stringify(state.profile));
+  syncLayoutState();
+}
+
+// Helper to keep headers, leaf-counters, and avatars in sync across all pages
+function syncLayoutState() {
+  const flat = getFlatMemories();
+  
+  // Update header counter
+  const headerCount = document.getElementById("header-memory-count");
+  if (headerCount) headerCount.textContent = flat.length;
+
+  // Update topbar avatar image and sidebar logo
+  const topbarAvatar = document.querySelector(".profile-avatar-btn img");
+  if (topbarAvatar) topbarAvatar.src = state.profile.avatar;
+
+  const sidebarLogo = document.querySelector(".sidebar-logo");
+  if (sidebarLogo) sidebarLogo.src = state.profile.avatar;
 }
 
 // --- Navigation Controller (View Swapping + Transitions) ---
 function navigateTo(targetViewId, direction = "forward") {
-  const views = ["view-signin", "view-dashboard", "view-plant", "view-profile", "view-my-garden", "view-mood"];
-  
   const updateDOM = () => {
-    views.forEach(viewId => {
-      const el = document.getElementById(viewId);
-      if (viewId === targetViewId) {
-        el.classList.remove("hidden-view");
-        el.classList.add("active-view");
+    const signinEl = document.getElementById("view-signin");
+    const shellEl = document.getElementById("main-shell");
+    
+    if (targetViewId === "view-signin") {
+      signinEl.classList.remove("hidden-view");
+      signinEl.classList.add("active-view");
+      shellEl.classList.add("hidden-view");
+      shellEl.classList.remove("active-view");
+    } else {
+      signinEl.classList.add("hidden-view");
+      signinEl.classList.remove("active-view");
+      shellEl.classList.remove("hidden-view");
+      shellEl.classList.add("active-view");
+      
+      // Toggle specific subviews inside main-shell
+      const subviews = ["view-dashboard", "view-plant", "view-my-garden", "view-mood", "view-profile"];
+      subviews.forEach(viewId => {
+        const el = document.getElementById(viewId);
+        if (el) {
+          if (viewId === targetViewId) {
+            el.classList.remove("hidden-view");
+            el.classList.add("active-view");
+          } else {
+            el.classList.add("hidden-view");
+            el.classList.remove("active-view");
+          }
+        }
+      });
+      
+      // Update topbar left dynamic content
+      const searchWrapper = document.getElementById("topbar-search-wrapper");
+      const pageTitle = document.getElementById("topbar-page-title");
+      
+      if (targetViewId === "view-dashboard") {
+        searchWrapper.classList.remove("hidden-view");
+        pageTitle.classList.add("hidden-view");
       } else {
-        el.classList.add("hidden-view");
-        el.classList.remove("active-view");
+        searchWrapper.classList.add("hidden-view");
+        pageTitle.classList.remove("hidden-view");
+        
+        let titleText = "Memory Garden";
+        if (targetViewId === "view-plant") titleText = "Plant a Memory";
+        else if (targetViewId === "view-my-garden") titleText = "My Garden";
+        else if (targetViewId === "view-mood") titleText = "Mood Calendar";
+        else if (targetViewId === "view-profile") titleText = "Profile Settings";
+        
+        pageTitle.textContent = titleText;
+      }
+    }
+
+    // Synchronize current page active state in sidebars
+    const viewName = targetViewId.replace("view-", "");
+    document.querySelectorAll(".sidebar-nav .nav-item").forEach(item => {
+      if (item.getAttribute("data-view") === viewName) {
+        item.classList.add("active");
+      } else {
+        item.classList.remove("active");
       }
     });
+
+    // Sync state (avatars, counts) immediately
+    syncLayoutState();
 
     // View-specific initialization on load
     if (targetViewId === "view-dashboard") {
@@ -295,19 +362,10 @@ function renderDashboard(filterQuery = "") {
   }
 
   // Update Stats & Header
-  document.getElementById("header-memory-count").textContent = flat.length;
   document.getElementById("stats-total-memories").textContent = flat.length;
 
-  // Render profile avatar across all views
-  const avatarElements = [
-    document.getElementById("btn-to-profile") ? document.getElementById("btn-to-profile").querySelector("img") : null,
-    document.getElementById("btn-to-profile-garden") ? document.getElementById("btn-to-profile-garden").querySelector("img") : null,
-    document.getElementById("btn-to-profile-mood") ? document.getElementById("btn-to-profile-mood").querySelector("img") : null,
-    ...document.querySelectorAll(".sidebar-logo")
-  ].filter(Boolean);
-  avatarElements.forEach(img => {
-    if (img) img.src = state.profile.avatar;
-  });
+  // Sync avatar and counts layout-wide
+  syncLayoutState();
 
   // Calculate day streak
   document.getElementById("stats-streak").textContent = calculateStreak();
@@ -396,24 +454,8 @@ function renderMyGarden(filterQuery = "") {
 
   filteredMemories.sort((a, b) => b.timestamp - a.timestamp);
 
-  const countEl = document.getElementById("garden-memory-count");
-  if (countEl) countEl.textContent = flat.length;
-
-  const profileAvatar = document.getElementById("btn-to-profile-garden") ? document.getElementById("btn-to-profile-garden").querySelector("img") : null;
-  if (profileAvatar) {
-    profileAvatar.src = state.profile.avatar;
-  }
-
-  // Update all sidebars active state
-  document.querySelectorAll(".sidebar-nav").forEach(nav => {
-    nav.querySelectorAll(".nav-item").forEach(item => {
-      if (item.getAttribute("data-view") === "my-garden") {
-        item.classList.add("active");
-      } else {
-        item.classList.remove("active");
-      }
-    });
-  });
+  // Sync layout state
+  syncLayoutState();
 
   if (filteredMemories.length === 0) {
     gridEl.innerHTML = `
@@ -461,26 +503,10 @@ function renderMoodCalendar() {
     headerEl.textContent = `${monthNames[month]} ${year}`;
   }
 
-  const profileAvatar = document.getElementById("btn-to-profile-mood") ? document.getElementById("btn-to-profile-mood").querySelector("img") : null;
-  if (profileAvatar) {
-    profileAvatar.src = state.profile.avatar;
-  }
-
   const flat = getFlatMemories();
 
-  const countEl = document.getElementById("mood-memory-count");
-  if (countEl) countEl.textContent = flat.length;
-
-  // Update all sidebars active state
-  document.querySelectorAll(".sidebar-nav").forEach(nav => {
-    nav.querySelectorAll(".nav-item").forEach(item => {
-      if (item.getAttribute("data-view") === "mood") {
-        item.classList.add("active");
-      } else {
-        item.classList.remove("active");
-      }
-    });
-  });
+  // Sync layout state
+  syncLayoutState();
 
   // Calculate mood counts dynamically
   let happyCount = 0;
@@ -729,12 +755,7 @@ function setupEventListeners() {
   });
 
   // Topbar Profile Avatar Action
-  const toProfileButtons = [
-    document.getElementById("btn-to-profile"),
-    document.getElementById("btn-to-profile-garden"),
-    document.getElementById("btn-to-profile-mood")
-  ].filter(Boolean);
-  toProfileButtons.forEach(btn => {
+  document.querySelectorAll(".profile-avatar-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       navigateTo("view-profile", "forward");
     });
@@ -793,7 +814,7 @@ function setupEventListeners() {
   }
 
   // --- Plant Memory Interaction ---
-  document.getElementById("btn-plant-back").addEventListener("click", () => {
+  document.getElementById("btn-plant-back")?.addEventListener("click", () => {
     navigateTo("view-dashboard", "backward");
   });
 
@@ -899,7 +920,7 @@ function setupEventListeners() {
 
 
   // --- Profile Page Interaction ---
-  document.getElementById("btn-profile-back").addEventListener("click", () => {
+  document.getElementById("btn-profile-back")?.addEventListener("click", () => {
     navigateTo("view-dashboard", "backward");
   });
 
@@ -916,6 +937,7 @@ function setupEventListeners() {
       reader.onload = (event) => {
         state.profile.avatar = event.target.result;
         document.getElementById("profile-display-avatar").src = state.profile.avatar;
+        syncLayoutState();
       };
       reader.readAsDataURL(file);
     }
