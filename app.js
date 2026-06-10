@@ -36,7 +36,7 @@ const DEFAULT_PROFILE = {
 
 // --- Application State ---
 let state = {
-  memories: [],
+  memories: {},
   profile: {},
   currentSelectedEmoji: "🌸",
   currentUploadedImage: null,
@@ -44,62 +44,108 @@ let state = {
 };
 
 // --- Helper Functions for Data Migration and State Structuring ---
-function getLocalDateString(timestamp) {
-  return new Date(timestamp).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  });
+function getLocalDateKey(timestamp) {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getMemoryDateKey(memory) {
+  if (memory.timestamp) {
+    return getLocalDateKey(memory.timestamp);
+  }
+  if (memory.date) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(memory.date)) {
+      return memory.date;
+    }
+    const parsed = Date.parse(memory.date);
+    if (!isNaN(parsed)) {
+      return getLocalDateKey(parsed);
+    }
+  }
+  return getLocalDateKey(Date.now());
 }
 
 function migrateMemories(loaded) {
-  if (!Array.isArray(loaded)) return [];
-  if (loaded.length === 0) return [];
-  
-  // Check if already in new format: every item has an 'entries' array
-  const isNewFormat = loaded.every(item => item && typeof item === 'object' && 'entries' in item && Array.isArray(item.entries));
-  if (isNewFormat) {
-    return loaded;
-  }
-  
-  // Otherwise, it's the old flat format. Group them by local date.
-  const groupsMap = {};
-  loaded.forEach(m => {
-    const ts = m.timestamp || Date.now();
-    const dateStr = getLocalDateString(ts);
-    if (!groupsMap[dateStr]) {
-      groupsMap[dateStr] = [];
+  console.log("[migrateMemories] Starting migration with loaded data:", loaded);
+  const migrated = {};
+
+  if (Array.isArray(loaded)) {
+    console.log("[migrateMemories] Format detected: flat array of memories");
+    loaded.forEach(m => {
+      if (!m || typeof m !== "object") return;
+      const key = getMemoryDateKey(m);
+      if (!migrated[key]) {
+        migrated[key] = [];
+      }
+      migrated[key].push(m);
+    });
+  } else if (loaded && typeof loaded === "object") {
+    console.log("[migrateMemories] Format detected: dictionary format");
+    for (const key in loaded) {
+      if (loaded.hasOwnProperty(key)) {
+        const val = loaded[key];
+        if (Array.isArray(val)) {
+          // It's already an array of memories. Let's make sure the key is normalized.
+          let normKey = key;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+            const parsed = Date.parse(key);
+            if (!isNaN(parsed)) {
+              normKey = getLocalDateKey(parsed);
+            }
+          }
+          if (!migrated[normKey]) {
+            migrated[normKey] = [];
+          }
+          migrated[normKey].push(...val);
+        } else if (val && typeof val === "object") {
+          // It's a single memory object. Normalize key and wrap in array.
+          let normKey = key;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+            normKey = getMemoryDateKey(val);
+          }
+          if (!migrated[normKey]) {
+            migrated[normKey] = [];
+          }
+          migrated[normKey].push(val);
+        }
+      }
     }
-    groupsMap[dateStr].push(m);
-  });
-  
-  const migrated = Object.keys(groupsMap).map(dateStr => {
-    const entries = groupsMap[dateStr];
+  }
+
+  // Ensure all memories inside each date array have correct timestamp/date properties if missing
+  for (const key in migrated) {
+    migrated[key].forEach(m => {
+      if (!m.timestamp) m.timestamp = Date.parse(key) || Date.now();
+      if (!m.date) {
+        m.date = new Date(m.timestamp).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        });
+      }
+    });
     // Sort entries chronologically (oldest first)
-    entries.sort((a, b) => a.timestamp - b.timestamp);
-    return {
-      date: dateStr,
-      entries: entries
-    };
-  });
-  
-  // Sort groups descending by latest timestamp
-  migrated.sort((a, b) => {
-    const maxA = Math.max(...a.entries.map(e => e.timestamp));
-    const maxB = Math.max(...b.entries.map(e => e.timestamp));
-    return maxB - maxA;
-  });
-  
+    migrated[key].sort((a, b) => a.timestamp - b.timestamp);
+    console.log(`[migrateMemories] Date [${key}] has ${migrated[key].length} memories:`, migrated[key]);
+  }
+
+  console.log("[migrateMemories] Finished migration. Resulting database:", migrated);
   return migrated;
 }
 
 function getFlatMemories() {
   const flat = [];
-  state.memories.forEach(group => {
-    if (group && Array.isArray(group.entries)) {
-      flat.push(...group.entries);
+  for (const key in state.memories) {
+    if (state.memories.hasOwnProperty(key)) {
+      const entries = state.memories[key];
+      if (Array.isArray(entries)) {
+        flat.push(...entries);
+      }
     }
-  });
+  }
   // Sort descending by timestamp (newest first) for general dashboard/list usage
   return flat.sort((a, b) => b.timestamp - a.timestamp);
 }
@@ -115,17 +161,19 @@ document.addEventListener("DOMContentLoaded", () => {
 function initData() {
   // Load memories
   const savedMemories = localStorage.getItem("mg_memories");
+  console.log("[initData] Raw savedMemories loaded from localStorage:", savedMemories);
   if (savedMemories) {
     try {
       const parsed = JSON.parse(savedMemories);
       state.memories = migrateMemories(parsed);
       saveMemoriesToStorage(); // Save migrated data
     } catch (e) {
-      console.error("Failed to parse/migrate memories from localStorage", e);
+      console.error("[initData] Failed to parse/migrate memories from localStorage", e);
       state.memories = migrateMemories([...DEFAULT_MEMORIES]);
       saveMemoriesToStorage();
     }
   } else {
+    console.log("[initData] No savedMemories in localStorage. Using DEFAULT_MEMORIES mock data.");
     state.memories = migrateMemories([...DEFAULT_MEMORIES]);
     saveMemoriesToStorage();
   }
@@ -141,6 +189,7 @@ function initData() {
 }
 
 function saveMemoriesToStorage() {
+  console.log("[saveMemoriesToStorage] Saving state.memories to localStorage:", state.memories);
   localStorage.setItem("mg_memories", JSON.stringify(state.memories));
 }
 
@@ -488,19 +537,19 @@ function renderMoodCalendar() {
       cell.classList.add("cell-today");
     }
 
+    const cellContent = document.createElement("div");
+    cellContent.className = "calendar-cell-content";
+
     const numLabel = document.createElement("span");
     numLabel.className = "calendar-cell-num";
     numLabel.textContent = day;
-    cell.appendChild(numLabel);
+    cellContent.appendChild(numLabel);
 
-    const dayMemories = flat.filter(m => {
-      const memoryDate = new Date(m.timestamp);
-      return memoryDate.getFullYear() === year &&
-             memoryDate.getMonth() === month &&
-             memoryDate.getDate() === day;
-    });
+    const cellDateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dayMemories = [...(state.memories[cellDateStr] || [])];
 
     if (dayMemories.length > 0) {
+      console.log(`[renderMoodCalendar] Cell for ${cellDateStr} renders. Total memories: ${dayMemories.length}`, dayMemories);
       dayMemories.sort((a, b) => b.timestamp - a.timestamp);
       const mainMemory = dayMemories[0];
 
@@ -519,7 +568,7 @@ function renderMoodCalendar() {
         emojiWrapper.appendChild(badgeSpan);
       }
 
-      cell.appendChild(emojiWrapper);
+      cellContent.appendChild(emojiWrapper);
 
       const moodWord = (mainMemory.moodWord || "").toLowerCase().trim();
       let moodClass = "cell-mood-default";
@@ -546,6 +595,7 @@ function renderMoodCalendar() {
       });
     }
 
+    cell.appendChild(cellContent);
     gridEl.appendChild(cell);
   }
 }
@@ -584,6 +634,7 @@ function openMemoryDetailsModal(memory) {
 }
 
 function openDayDetailsModal(dayMemories, dateStr) {
+  console.log(`[openDayDetailsModal] Opening day details modal for [${dateStr}] with ${dayMemories.length} memories:`, dayMemories);
   const modal = document.getElementById("memory-details-modal");
   if (!modal) return;
 
@@ -831,13 +882,13 @@ function setupEventListeners() {
       image: state.currentUploadedImage
     };
 
-    const dateStr = getLocalDateString(newMemory.timestamp);
-    let group = state.memories.find(g => g.date === dateStr);
-    if (!group) {
-      group = { date: dateStr, entries: [] };
-      state.memories.unshift(group);
+    const dateStr = getLocalDateKey(newMemory.timestamp);
+    if (!state.memories[dateStr]) {
+      state.memories[dateStr] = [];
     }
-    group.entries.unshift(newMemory);
+    state.memories[dateStr].push(newMemory);
+
+    console.log(`[saveMemory] Appended memory under key ${dateStr}. Total memories for date: ${state.memories[dateStr].length}`, state.memories[dateStr]);
 
     saveMemoriesToStorage();
     navigateTo("view-dashboard", "backward");
