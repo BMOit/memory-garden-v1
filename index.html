@@ -205,7 +205,8 @@
             </div>
 
             <!-- Main Submit Button -->
-            <div class="submit-bar">
+            <div class="submit-bar" style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
+              <button id="btn-delete-submit" class="btn-secondary logout-btn hidden-view" style="width: auto; min-width: 140px; margin-top: 0;">Delete Memory 🗑️</button>
               <button id="btn-plant-submit" class="btn-primary btn-plant">Plant Memory 🪴</button>
             </div>
           </div>
@@ -312,19 +313,28 @@
         
         <!-- Single Memory View -->
         <div id="modal-single-view">
-          <div class="modal-header">
-            <span id="modal-mood-emoji" class="modal-emoji">🌸</span>
-            <div class="modal-title-meta">
-              <h3 id="modal-memory-title">Memory Title</h3>
-              <div class="modal-meta-row">
-                <span id="modal-mood-word" class="entry-mood-badge">happy</span>
-                <span id="modal-memory-date" class="modal-date">June 9, 2026</span>
+          <div class="modal-detail-layout">
+            <div class="modal-detail-photo">
+              <img id="modal-detail-image" src="" alt="Memory preview">
+            </div>
+            <div class="modal-detail-content">
+              <div class="modal-header" style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: none;">
+                <span id="modal-detail-emoji" class="modal-emoji">🌸</span>
+                <div class="modal-title-meta">
+                  <h3 id="modal-detail-title">Memory Title</h3>
+                  <div class="modal-meta-row">
+                    <span id="modal-detail-mood" class="entry-mood-badge">happy</span>
+                    <span id="modal-detail-date" class="modal-date">June 9, 2026</span>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-body" style="max-height: 240px;">
+                <p id="modal-detail-text">Memory contents go here...</p>
+              </div>
+              <div class="modal-detail-actions">
+                <button id="btn-edit-memory" class="btn-primary btn-edit">✏️ Edit Memory</button>
               </div>
             </div>
-          </div>
-          <div class="modal-body">
-            <p id="modal-memory-body">Memory contents go here...</p>
-            <img id="modal-memory-image" src="" alt="Memory preview" class="modal-img-preview hidden-view">
           </div>
         </div>
 

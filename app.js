@@ -40,7 +40,8 @@ let state = {
   profile: {},
   currentSelectedEmoji: "🌸",
   currentUploadedImage: null,
-  currentCalendarDate: new Date()
+  currentCalendarDate: new Date(),
+  editingMemoryId: null
 };
 
 // --- Helper Functions for Data Migration and State Structuring ---
@@ -179,10 +180,16 @@ function initData() {
   }
 
   // Load profile
-  const savedProfile = localStorage.getItem("mg_profile");
-  if (savedProfile) {
-    state.profile = JSON.parse(savedProfile);
-  } else {
+  try {
+    const savedProfile = localStorage.getItem("mg_profile");
+    if (savedProfile && savedProfile !== "undefined") {
+      state.profile = JSON.parse(savedProfile);
+    } else {
+      state.profile = { ...DEFAULT_PROFILE };
+      saveProfileToStorage();
+    }
+  } catch (e) {
+    console.error("[initData] Failed to parse/load profile from localStorage", e);
     state.profile = { ...DEFAULT_PROFILE };
     saveProfileToStorage();
   }
@@ -190,7 +197,12 @@ function initData() {
 
 function saveMemoriesToStorage() {
   console.log("[saveMemoriesToStorage] Saving state.memories to localStorage:", state.memories);
-  localStorage.setItem("mg_memories", JSON.stringify(state.memories));
+  try {
+    localStorage.setItem("mg_memories", JSON.stringify(state.memories));
+  } catch (e) {
+    console.error("[saveMemoriesToStorage] Failed to save memories to localStorage", e);
+    alert("Warning: Could not save memories to browser storage. Your storage might be full (e.g. from uploading very large images). 🌸");
+  }
 }
 
 function saveProfileToStorage() {
@@ -286,7 +298,16 @@ function navigateTo(targetViewId, direction = "forward") {
     } else if (targetViewId === "view-profile") {
       loadProfileFields();
     } else if (targetViewId === "view-plant") {
-      resetPlantWorkspace();
+      if (state.editingMemoryId) {
+        const memory = findMemoryById(state.editingMemoryId);
+        if (memory) {
+          setupEditWorkspace(memory);
+        } else {
+          resetPlantWorkspace();
+        }
+      } else {
+        resetPlantWorkspace();
+      }
     } else if (targetViewId === "view-my-garden") {
       renderMyGarden();
     } else if (targetViewId === "view-mood") {
@@ -301,13 +322,65 @@ function navigateTo(targetViewId, direction = "forward") {
   }
 
   // Execute view transition with direction type
-  document.startViewTransition({
-    update: updateDOM,
-    types: [direction]
-  });
+  try {
+    document.startViewTransition({
+      update: updateDOM,
+      types: [direction]
+    });
+  } catch (e) {
+    console.warn("[navigateTo] startViewTransition object parameter failed, falling back to function parameter:", e);
+    try {
+      document.startViewTransition(updateDOM);
+    } catch (err) {
+      console.error("[navigateTo] startViewTransition fallback also failed:", err);
+      updateDOM();
+    }
+  }
 }
 
 // --- Dashboard Renderer ---
+function createPolaroidCard(memory) {
+  const card = document.createElement("div");
+  card.className = "polaroid-card";
+  card.dataset.id = memory.id;
+  
+  const dateFormatted = new Date(memory.timestamp).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+
+  const photoHtml = memory.image 
+    ? `<img src="${memory.image}" alt="${escapeHTML(memory.title)}">` 
+    : `<div class="polaroid-placeholder"><span class="polaroid-placeholder-emoji">${memory.moodEmoji || "🌸"}</span></div>`;
+
+  card.innerHTML = `
+    <div class="polaroid-photo-slot">
+      ${photoHtml}
+    </div>
+    <div class="polaroid-caption">
+      <div class="polaroid-title-row">
+        <span class="polaroid-emoji">${memory.moodEmoji || "🌸"}</span>
+        <span class="polaroid-title">${escapeHTML(memory.title)}</span>
+      </div>
+      <span class="polaroid-date">${dateFormatted}</span>
+    </div>
+  `;
+
+  // Assign stable random rotation based on memory timestamp ID
+  const rotations = [-2.5, -1.5, -0.8, 0.8, 1.5, 2.5];
+  const numId = parseInt(memory.id.replace(/\D/g, '')) || Date.now();
+  const rot = rotations[numId % rotations.length];
+  card.style.setProperty('--rotation', `${rot}deg`);
+
+  // Navigate to modal on click
+  card.addEventListener("click", () => {
+    openMemoryDetailsModal(memory);
+  });
+
+  return card;
+}
+
 function renderDashboard(filterQuery = "") {
   const listEl = document.getElementById("entries-list");
   listEl.innerHTML = "";
@@ -327,36 +400,14 @@ function renderDashboard(filterQuery = "") {
 
   if (filteredMemories.length === 0) {
     listEl.innerHTML = `
-      <div class="no-entries-card">
+      <div class="no-entries-card" style="grid-column: 1 / -1; width: 100%;">
         <span style="font-size: 2rem;">🫙</span>
         <p>${filterQuery ? "No matching memories found." : "No memories planted yet. Let's grow your garden!"}</p>
       </div>
     `;
   } else {
     filteredMemories.forEach(memory => {
-      const card = document.createElement("div");
-      card.className = "entry-card";
-      
-      const dateFormatted = new Date(memory.timestamp).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-      });
-
-      card.innerHTML = `
-        <div class="entry-header">
-          <div class="entry-title-wrap">
-            <span class="entry-emoji">${memory.moodEmoji || "🌸"}</span>
-            <h4 class="entry-title">${escapeHTML(memory.title)}</h4>
-          </div>
-          <div class="entry-meta">
-            <span class="entry-mood-badge">${escapeHTML(memory.moodWord)}</span>
-            <span class="entry-date">${dateFormatted}</span>
-          </div>
-        </div>
-        <p class="entry-body">${escapeHTML(memory.body)}</p>
-        ${memory.image ? `<img src="${memory.image}" alt="Memory illustration" class="entry-img-preview">` : ""}
-      `;
+      const card = createPolaroidCard(memory);
       listEl.appendChild(card);
     });
   }
@@ -425,17 +476,59 @@ function calculateGardenAge() {
 
 // --- Plant Workspace Helpers ---
 function resetPlantWorkspace() {
+  state.editingMemoryId = null;
   document.getElementById("input-memory-title").value = "";
   document.getElementById("textarea-memory-body").value = "";
   document.getElementById("input-mood-desc").value = "";
   state.currentSelectedEmoji = "🌸";
   state.currentUploadedImage = null;
-  document.getElementById("selected-emoji-preview").textContent = "";
+  document.getElementById("selected-emoji-preview").textContent = `: ${state.currentSelectedEmoji}`;
   
   // Hide image preview
   const previewContainer = document.getElementById("image-preview-container");
   previewContainer.classList.add("hidden-view");
   document.getElementById("image-preview").src = "";
+
+  // Reset topbar page title if on Plant view
+  const pageTitle = document.getElementById("topbar-page-title");
+  if (pageTitle && document.getElementById("view-plant").classList.contains("active-view")) {
+    pageTitle.textContent = "Plant a Memory";
+  }
+
+  // Reset submit bar items
+  const deleteBtn = document.getElementById("btn-delete-submit");
+  if (deleteBtn) deleteBtn.classList.add("hidden-view");
+  const submitBtn = document.getElementById("btn-plant-submit");
+  if (submitBtn) submitBtn.textContent = "Plant Memory 🪴";
+}
+
+function setupEditWorkspace(memory) {
+  document.getElementById("input-memory-title").value = memory.title;
+  document.getElementById("textarea-memory-body").value = memory.body;
+  document.getElementById("input-mood-desc").value = memory.moodWord || "";
+  state.currentSelectedEmoji = memory.moodEmoji || "🌸";
+  document.getElementById("selected-emoji-preview").textContent = `: ${state.currentSelectedEmoji}`;
+  
+  state.currentUploadedImage = memory.image;
+  const previewContainer = document.getElementById("image-preview-container");
+  const previewImg = document.getElementById("image-preview");
+  if (memory.image) {
+    previewImg.src = memory.image;
+    previewContainer.classList.remove("hidden-view");
+  } else {
+    previewImg.src = "";
+    previewContainer.classList.add("hidden-view");
+  }
+
+  // Set topbar page title
+  const pageTitle = document.getElementById("topbar-page-title");
+  if (pageTitle) pageTitle.textContent = "Edit Memory";
+
+  // Show delete button and rename submit button
+  const deleteBtn = document.getElementById("btn-delete-submit");
+  if (deleteBtn) deleteBtn.classList.remove("hidden-view");
+  const submitBtn = document.getElementById("btn-plant-submit");
+  if (submitBtn) submitBtn.textContent = "Save Changes 🌸";
 }
 
 // --- My Garden Renderer (White cards matching left mockup) ---
@@ -468,22 +561,7 @@ function renderMyGarden(filterQuery = "") {
   }
 
   filteredMemories.forEach(memory => {
-    const card = document.createElement("div");
-    card.className = "garden-memory-card";
-
-    card.innerHTML = `
-      <div class="garden-memory-card-header">
-        <span>${memory.moodEmoji || "🌸"}</span>
-        <span>${escapeHTML(memory.title)}</span>
-      </div>
-      <p class="garden-memory-card-body">${escapeHTML(memory.body)}</p>
-      ${memory.image ? `<img src="${memory.image}" alt="Memory illustration" class="garden-memory-card-img-preview">` : ""}
-    `;
-
-    card.addEventListener("click", () => {
-      openMemoryDetailsModal(memory);
-    });
-
+    const card = createPolaroidCard(memory);
     gridEl.appendChild(card);
   });
 }
@@ -627,6 +705,16 @@ function renderMoodCalendar() {
 }
 
 // --- Lightbox Modal Controllers ---
+function findMemoryById(memoryId) {
+  for (const date in state.memories) {
+    if (state.memories.hasOwnProperty(date)) {
+      const found = state.memories[date].find(m => m.id === memoryId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 function openMemoryDetailsModal(memory) {
   const modal = document.getElementById("memory-details-modal");
   if (!modal) return;
@@ -635,25 +723,76 @@ function openMemoryDetailsModal(memory) {
   document.getElementById("modal-single-view").classList.remove("hidden-view");
   document.getElementById("modal-multi-view").classList.add("hidden-view");
 
-  document.getElementById("modal-mood-emoji").textContent = memory.moodEmoji || "🌸";
-  document.getElementById("modal-memory-title").textContent = memory.title;
-  document.getElementById("modal-mood-word").textContent = memory.moodWord || "happy";
-  
+  const singleViewEl = document.getElementById("modal-single-view");
   const dateFormatted = new Date(memory.timestamp).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric"
   });
-  document.getElementById("modal-memory-date").textContent = dateFormatted;
-  document.getElementById("modal-memory-body").textContent = memory.body;
-  
-  const modalImg = document.getElementById("modal-memory-image");
+
+  const modalCard = modal.querySelector(".modal-card");
+
   if (memory.image) {
-    modalImg.src = memory.image;
-    modalImg.classList.remove("hidden-view");
+    modalCard.classList.add("modal-has-image");
+    singleViewEl.innerHTML = `
+      <div class="modal-detail-layout">
+        <div class="modal-detail-photo">
+          <img src="${memory.image}" alt="Memory preview">
+        </div>
+        <div class="modal-detail-content">
+          <div class="modal-header" style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: none;">
+            <span class="modal-emoji">${memory.moodEmoji || "🌸"}</span>
+            <div class="modal-title-meta">
+              <h3>${escapeHTML(memory.title)}</h3>
+              <div class="modal-meta-row">
+                <span class="entry-mood-badge">${escapeHTML(memory.moodWord || "happy")}</span>
+                <span class="modal-date">${dateFormatted}</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-body" style="max-height: 240px;">
+            <p>${escapeHTML(memory.body)}</p>
+          </div>
+          <div class="modal-detail-actions">
+            <button id="btn-edit-memory" class="btn-primary btn-edit">✏️ Edit Memory</button>
+          </div>
+        </div>
+      </div>
+    `;
   } else {
-    modalImg.src = "";
-    modalImg.classList.add("hidden-view");
+    modalCard.classList.remove("modal-has-image");
+    singleViewEl.innerHTML = `
+      <div class="modal-detail-layout modal-no-image">
+        <div class="modal-detail-content">
+          <div class="modal-header" style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: none;">
+            <span class="modal-emoji">${memory.moodEmoji || "🌸"}</span>
+            <div class="modal-title-meta">
+              <h3>${escapeHTML(memory.title)}</h3>
+              <div class="modal-meta-row">
+                <span class="entry-mood-badge">${escapeHTML(memory.moodWord || "happy")}</span>
+                <span class="modal-date">${dateFormatted}</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-body" style="max-height: 240px;">
+            <p>${escapeHTML(memory.body)}</p>
+          </div>
+          <div class="modal-detail-actions">
+            <button id="btn-edit-memory" class="btn-primary btn-edit">✏️ Edit Memory</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Bind Edit button click
+  const editBtn = singleViewEl.querySelector("#btn-edit-memory");
+  if (editBtn) {
+    editBtn.addEventListener("click", () => {
+      state.editingMemoryId = memory.id;
+      closeMemoryDetailsModal();
+      navigateTo("view-plant", "forward");
+    });
   }
 
   modal.classList.remove("hidden-view");
@@ -678,6 +817,14 @@ function openDayDetailsModal(dayMemories, dateStr) {
   const container = document.getElementById("modal-multi-body");
   container.innerHTML = "";
 
+  const modalCard = modal.querySelector(".modal-card");
+  const anyHasImage = sortedMemories.some(m => m.image);
+  if (anyHasImage) {
+    modalCard.classList.add("modal-has-image");
+  } else {
+    modalCard.classList.remove("modal-has-image");
+  }
+
   sortedMemories.forEach(memory => {
     const entry = document.createElement("div");
     entry.className = "modal-day-entry";
@@ -687,20 +834,59 @@ function openDayDetailsModal(dayMemories, dateStr) {
       minute: "2-digit"
     });
 
-    entry.innerHTML = `
-      <div class="modal-day-entry-header">
-        <span class="modal-day-entry-emoji">${memory.moodEmoji || "🌸"}</span>
-        <div class="modal-day-entry-meta">
-          <div class="modal-day-entry-title-row">
-            <h4 class="modal-day-entry-title">${escapeHTML(memory.title)}</h4>
-            <span class="modal-day-entry-time">${timeFormatted}</span>
+    if (memory.image) {
+      entry.innerHTML = `
+        <div class="modal-detail-layout">
+          <div class="modal-detail-photo">
+            <img src="${memory.image}" alt="Memory illustration">
           </div>
-          <span class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">${escapeHTML(memory.moodWord || "happy")}</span>
+          <div class="modal-detail-content">
+            <div class="modal-day-entry-header">
+              <span class="modal-day-entry-emoji">${memory.moodEmoji || "🌸"}</span>
+              <div class="modal-day-entry-meta">
+                <div class="modal-day-entry-title-row">
+                  <h4 class="modal-day-entry-title">${escapeHTML(memory.title)}</h4>
+                  <span class="modal-day-entry-time">${timeFormatted}</span>
+                </div>
+                <span class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">${escapeHTML(memory.moodWord || "happy")}</span>
+              </div>
+            </div>
+            <p class="modal-day-entry-body">${escapeHTML(memory.body)}</p>
+            <div style="margin-top: auto; text-align: right;">
+              <button class="btn-edit-entry btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 8px;">✏️ Edit</button>
+            </div>
+          </div>
         </div>
-      </div>
-      <p class="modal-day-entry-body">${escapeHTML(memory.body)}</p>
-      ${memory.image ? `<img src="${memory.image}" alt="Memory illustration" class="modal-day-entry-image">` : ""}
-    `;
+      `;
+    } else {
+      entry.innerHTML = `
+        <div class="modal-day-entry-header">
+          <span class="modal-day-entry-emoji">${memory.moodEmoji || "🌸"}</span>
+          <div class="modal-day-entry-meta">
+            <div class="modal-day-entry-title-row">
+              <h4 class="modal-day-entry-title">${escapeHTML(memory.title)}</h4>
+              <span class="modal-day-entry-time">${timeFormatted}</span>
+            </div>
+            <span class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">${escapeHTML(memory.moodWord || "happy")}</span>
+          </div>
+        </div>
+        <p class="modal-day-entry-body">${escapeHTML(memory.body)}</p>
+        <div style="margin-top: 8px; text-align: right;">
+          <button class="btn-edit-entry btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 8px;">✏️ Edit</button>
+        </div>
+      `;
+    }
+
+    // Bind edit event to the dynamic button
+    const editBtn = entry.querySelector(".btn-edit-entry");
+    if (editBtn) {
+      editBtn.addEventListener("click", () => {
+        state.editingMemoryId = memory.id;
+        closeMemoryDetailsModal();
+        navigateTo("view-plant", "forward");
+      });
+    }
+
     container.appendChild(entry);
   });
 
@@ -728,6 +914,10 @@ function setupEventListeners() {
       const targetView = item.getAttribute("data-view");
       if (targetView) {
         e.preventDefault();
+        
+        if (targetView === "plant") {
+          state.editingMemoryId = null;
+        }
         
         // Remove active class from other items
         navItems.forEach(ni => ni.classList.remove("active"));
@@ -827,17 +1017,15 @@ function setupEventListeners() {
   fileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        state.currentUploadedImage = event.target.result;
+      compressImage(file, 800, 0.7, (compressedDataUrl) => {
+        state.currentUploadedImage = compressedDataUrl;
         
         // Show preview
         const previewContainer = document.getElementById("image-preview-container");
         const previewImg = document.getElementById("image-preview");
         previewImg.src = state.currentUploadedImage;
         previewContainer.classList.remove("hidden-view");
-      };
-      reader.readAsDataURL(file);
+      });
     }
   });
 
@@ -888,35 +1076,93 @@ function setupEventListeners() {
       return;
     }
 
-    const newMemory = {
-      id: "memory-" + Date.now(),
-      title: title,
-      body: body,
-      date: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-      }),
-      timestamp: Date.now(),
-      moodEmoji: state.currentSelectedEmoji,
-      moodWord: moodWord,
-      image: state.currentUploadedImage
-    };
+    if (state.editingMemoryId) {
+      let updated = false;
+      for (const date in state.memories) {
+        if (state.memories.hasOwnProperty(date)) {
+          const idx = state.memories[date].findIndex(m => m.id === state.editingMemoryId);
+          if (idx !== -1) {
+            state.memories[date][idx].title = title;
+            state.memories[date][idx].body = body;
+            state.memories[date][idx].moodEmoji = state.currentSelectedEmoji;
+            state.memories[date][idx].moodWord = moodWord;
+            state.memories[date][idx].image = state.currentUploadedImage;
+            updated = true;
+            break;
+          }
+        }
+      }
+      
+      if (updated) {
+        saveMemoriesToStorage();
+        state.editingMemoryId = null;
+        navigateTo("view-dashboard", "backward");
+      }
+    } else {
+      const newMemory = {
+        id: "memory-" + Date.now(),
+        title: title,
+        body: body,
+        date: new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        }),
+        timestamp: Date.now(),
+        moodEmoji: state.currentSelectedEmoji,
+        moodWord: moodWord,
+        image: state.currentUploadedImage,
+        imageSize: "medium"
+      };
 
-    const dateStr = getLocalDateKey(newMemory.timestamp);
-    if (!state.memories[dateStr]) {
-      state.memories[dateStr] = [];
+      const dateStr = getLocalDateKey(newMemory.timestamp);
+      if (!state.memories[dateStr]) {
+        state.memories[dateStr] = [];
+      }
+      state.memories[dateStr].push(newMemory);
+
+      console.log(`[saveMemory] Appended memory under key ${dateStr}. Total memories for date: ${state.memories[dateStr].length}`, state.memories[dateStr]);
+
+      saveMemoriesToStorage();
+      navigateTo("view-dashboard", "backward");
     }
-    state.memories[dateStr].push(newMemory);
-
-    console.log(`[saveMemory] Appended memory under key ${dateStr}. Total memories for date: ${state.memories[dateStr].length}`, state.memories[dateStr]);
-
-    saveMemoriesToStorage();
-    navigateTo("view-dashboard", "backward");
   };
 
   document.getElementById("btn-plant-submit").addEventListener("click", saveMemory);
   document.getElementById("btn-bookmark-save").addEventListener("click", saveMemory);
+
+  const btnDelete = document.getElementById("btn-delete-submit");
+  if (btnDelete) {
+    btnDelete.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!state.editingMemoryId) return;
+
+      const confirmDel = confirm("Are you sure you want to delete this memory? This action cannot be undone. 🌸");
+      if (confirmDel) {
+        const memoryId = state.editingMemoryId;
+        let deleted = false;
+        for (const date in state.memories) {
+          if (state.memories.hasOwnProperty(date)) {
+            const idx = state.memories[date].findIndex(m => m.id === memoryId);
+            if (idx !== -1) {
+              state.memories[date].splice(idx, 1);
+              if (state.memories[date].length === 0) {
+                delete state.memories[date];
+              }
+              deleted = true;
+              break;
+            }
+          }
+        }
+
+        if (deleted) {
+          saveMemoriesToStorage();
+          resetPlantWorkspace();
+          navigateTo("view-dashboard", "backward");
+        }
+      }
+    });
+  }
 
 
   // --- Profile Page Interaction ---
@@ -933,13 +1179,11 @@ function setupEventListeners() {
   avatarInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        state.profile.avatar = event.target.result;
+      compressImage(file, 200, 0.7, (compressedDataUrl) => {
+        state.profile.avatar = compressedDataUrl;
         document.getElementById("profile-display-avatar").src = state.profile.avatar;
         syncLayoutState();
-      };
-      reader.readAsDataURL(file);
+      });
     }
   });
 
@@ -959,6 +1203,38 @@ function setupEventListeners() {
 }
 
 // --- Helper Functions ---
+function compressImage(file, maxDim, quality, callback) {
+  const reader = new FileReader();
+  reader.onload = (readerEvent) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+      callback(compressedDataUrl);
+    };
+    img.src = readerEvent.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function escapeHTML(str) {
   if (!str) return "";
   return str.replace(/[&<>'"]/g, 
