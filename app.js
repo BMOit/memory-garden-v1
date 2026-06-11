@@ -39,7 +39,7 @@ let state = {
   memories: {},
   profile: {},
   currentSelectedEmoji: "🌸",
-  currentUploadedImage: null,
+  currentUploadedImages: [],
   currentCalendarDate: new Date(),
   editingMemoryId: null
 };
@@ -67,6 +67,31 @@ function getMemoryDateKey(memory) {
     }
   }
   return getLocalDateKey(Date.now());
+}
+
+function getFirstImage(memory) {
+  if (memory.images && Array.isArray(memory.images) && memory.images.length > 0) {
+    return memory.images[0];
+  }
+  return memory.image || null;
+}
+
+function getAllImages(memory) {
+  if (memory.images && Array.isArray(memory.images)) {
+    return memory.images;
+  }
+  if (memory.image) {
+    return [memory.image];
+  }
+  return [];
+}
+
+function compressImagePromise(file, maxDim, quality) {
+  return new Promise((resolve) => {
+    compressImage(file, maxDim, quality, (compressedDataUrl) => {
+      resolve(compressedDataUrl);
+    });
+  });
 }
 
 function migrateMemories(loaded) {
@@ -330,7 +355,8 @@ function createEntryCard(memory) {
     year: "numeric"
   });
 
-  const hasImage = !!memory.image;
+  const firstImg = getFirstImage(memory);
+  const hasImage = !!firstImg;
   card.classList.toggle("has-thumbnail", hasImage);
 
   card.innerHTML = `
@@ -349,7 +375,7 @@ function createEntryCard(memory) {
     </div>
     ${hasImage ? `
       <div class="entry-card-thumbnail">
-        <img src="${memory.image}" alt="Memory thumbnail">
+        <img src="${firstImg}" alt="Memory thumbnail">
       </div>
     ` : ""}
   `;
@@ -366,7 +392,8 @@ function createGardenCard(memory) {
   card.className = "garden-memory-card";
   card.dataset.id = memory.id;
 
-  const hasImage = !!memory.image;
+  const firstImg = getFirstImage(memory);
+  const hasImage = !!firstImg;
   card.classList.toggle("has-thumbnail", hasImage);
 
   card.innerHTML = `
@@ -379,7 +406,7 @@ function createGardenCard(memory) {
     </div>
     ${hasImage ? `
       <div class="garden-memory-card-thumbnail">
-        <img src="${memory.image}" alt="Memory thumbnail">
+        <img src="${firstImg}" alt="Memory thumbnail">
       </div>
     ` : ""}
   `;
@@ -494,19 +521,56 @@ function calculateGardenAge() {
 }
 
 // --- Plant Workspace Helpers ---
+function renderUploadedImages() {
+  const container = document.getElementById("image-preview-container");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  const images = state.currentUploadedImages || [];
+  if (images.length === 0) {
+    container.classList.add("hidden-view");
+    return;
+  }
+  
+  container.classList.remove("hidden-view");
+  images.forEach((imgSrc, index) => {
+    const thumb = document.createElement("div");
+    thumb.className = "image-preview-thumb";
+    
+    const img = document.createElement("img");
+    img.src = imgSrc;
+    img.alt = "Memory preview thumbnail";
+    
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn-remove-thumb";
+    removeBtn.innerHTML = "×";
+    removeBtn.type = "button";
+    removeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      removeUploadedImageAtIndex(index);
+    });
+    
+    thumb.appendChild(img);
+    thumb.appendChild(removeBtn);
+    container.appendChild(thumb);
+  });
+}
+
+function removeUploadedImageAtIndex(index) {
+  state.currentUploadedImages.splice(index, 1);
+  renderUploadedImages();
+}
+
 function resetPlantWorkspace() {
   state.editingMemoryId = null;
   document.getElementById("input-memory-title").value = "";
   document.getElementById("textarea-memory-body").value = "";
   document.getElementById("input-mood-desc").value = "";
   state.currentSelectedEmoji = "🌸";
-  state.currentUploadedImage = null;
+  state.currentUploadedImages = [];
   document.getElementById("selected-emoji-preview").textContent = `: ${state.currentSelectedEmoji}`;
   
-  // Hide image preview
-  const previewContainer = document.getElementById("image-preview-container");
-  previewContainer.classList.add("hidden-view");
-  document.getElementById("image-preview").src = "";
+  renderUploadedImages();
 
   // Reset topbar page title if on Plant view
   const pageTitle = document.getElementById("topbar-page-title");
@@ -528,16 +592,8 @@ function setupEditWorkspace(memory) {
   state.currentSelectedEmoji = memory.moodEmoji || "🌸";
   document.getElementById("selected-emoji-preview").textContent = `: ${state.currentSelectedEmoji}`;
   
-  state.currentUploadedImage = memory.image;
-  const previewContainer = document.getElementById("image-preview-container");
-  const previewImg = document.getElementById("image-preview");
-  if (memory.image) {
-    previewImg.src = memory.image;
-    previewContainer.classList.remove("hidden-view");
-  } else {
-    previewImg.src = "";
-    previewContainer.classList.add("hidden-view");
-  }
+  state.currentUploadedImages = getAllImages(memory);
+  renderUploadedImages();
 
   // Set topbar page title
   const pageTitle = document.getElementById("topbar-page-title");
@@ -720,13 +776,26 @@ function openMemoryDetailsModal(memory) {
   });
 
   const modalCard = modal.querySelector(".modal-card");
+  const images = getAllImages(memory);
+  const hasImages = images.length > 0;
 
-  if (memory.image) {
+  if (hasImages) {
     modalCard.classList.add("modal-has-image");
     singleViewEl.innerHTML = `
       <div class="modal-detail-layout">
-        <div class="modal-detail-photo">
-          <img src="${memory.image}" alt="Memory preview">
+        <div class="modal-detail-gallery">
+          <div class="gallery-main-view">
+            <img src="${images[0]}" alt="Memory preview" id="gallery-main-img">
+          </div>
+          ${images.length > 1 ? `
+          <div class="gallery-thumbs-row">
+            ${images.map((imgUrl, idx) => `
+              <div class="gallery-thumb-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
+                <img src="${imgUrl}" alt="Thumbnail">
+              </div>
+            `).join('')}
+          </div>
+          ` : ""}
         </div>
         <div class="modal-detail-content">
           <div class="modal-header" style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: none;">
@@ -748,6 +817,20 @@ function openMemoryDetailsModal(memory) {
         </div>
       </div>
     `;
+
+    // Bind thumbnail click events
+    const thumbItems = singleViewEl.querySelectorAll(".gallery-thumb-item");
+    thumbItems.forEach(thumb => {
+      thumb.addEventListener("click", () => {
+        const idx = parseInt(thumb.getAttribute("data-index"), 10);
+        const mainImg = singleViewEl.querySelector("#gallery-main-img");
+        if (mainImg) {
+          mainImg.src = images[idx];
+        }
+        thumbItems.forEach(t => t.classList.remove("active"));
+        thumb.classList.add("active");
+      });
+    });
   } else {
     modalCard.classList.remove("modal-has-image");
     singleViewEl.innerHTML = `
@@ -807,7 +890,7 @@ function openDayDetailsModal(dayMemories, dateStr) {
   container.innerHTML = "";
 
   const modalCard = modal.querySelector(".modal-card");
-  const anyHasImage = sortedMemories.some(m => m.image);
+  const anyHasImage = sortedMemories.some(m => getFirstImage(m));
   if (anyHasImage) {
     modalCard.classList.add("modal-has-image");
   } else {
@@ -823,11 +906,12 @@ function openDayDetailsModal(dayMemories, dateStr) {
       minute: "2-digit"
     });
 
-    if (memory.image) {
+    const firstImg = getFirstImage(memory);
+    if (firstImg) {
       entry.innerHTML = `
         <div class="modal-detail-layout">
           <div class="modal-detail-photo">
-            <img src="${memory.image}" alt="Memory illustration">
+            <img src="${firstImg}" alt="Memory illustration">
           </div>
           <div class="modal-detail-content">
             <div class="modal-day-entry-header">
@@ -1003,27 +1087,22 @@ function setupEventListeners() {
     fileInput.click();
   });
 
-  fileInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      compressImage(file, 800, 0.7, (compressedDataUrl) => {
-        state.currentUploadedImage = compressedDataUrl;
-        
-        // Show preview
-        const previewContainer = document.getElementById("image-preview-container");
-        const previewImg = document.getElementById("image-preview");
-        previewImg.src = state.currentUploadedImage;
-        previewContainer.classList.remove("hidden-view");
-      });
+  fileInput.addEventListener("change", async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      const compressedUrls = [];
+      for (const file of files) {
+        try {
+          const compressed = await compressImagePromise(file, 800, 0.7);
+          compressedUrls.push(compressed);
+        } catch (err) {
+          console.error("Failed to compress image:", file.name, err);
+        }
+      }
+      state.currentUploadedImages = (state.currentUploadedImages || []).concat(compressedUrls);
+      renderUploadedImages();
+      fileInput.value = "";
     }
-  });
-
-  // Remove uploaded image from creator
-  document.getElementById("btn-remove-image").addEventListener("click", () => {
-    state.currentUploadedImage = null;
-    document.getElementById("image-upload-input").value = "";
-    document.getElementById("image-preview").src = "";
-    document.getElementById("image-preview-container").classList.add("hidden-view");
   });
 
   // Emoji Popover Trigger
@@ -1075,7 +1154,8 @@ function setupEventListeners() {
             state.memories[date][idx].body = body;
             state.memories[date][idx].moodEmoji = state.currentSelectedEmoji;
             state.memories[date][idx].moodWord = moodWord;
-            state.memories[date][idx].image = state.currentUploadedImage;
+            state.memories[date][idx].images = [...state.currentUploadedImages];
+            state.memories[date][idx].image = state.currentUploadedImages.length > 0 ? state.currentUploadedImages[0] : null;
             updated = true;
             break;
           }
@@ -1100,7 +1180,8 @@ function setupEventListeners() {
         timestamp: Date.now(),
         moodEmoji: state.currentSelectedEmoji,
         moodWord: moodWord,
-        image: state.currentUploadedImage,
+        images: [...state.currentUploadedImages],
+        image: state.currentUploadedImages.length > 0 ? state.currentUploadedImages[0] : null,
         imageSize: "medium"
       };
 

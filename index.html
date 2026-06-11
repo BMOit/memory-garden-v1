@@ -156,7 +156,7 @@
               <button class="control-btn" id="btn-trigger-upload">
                 <span class="control-icon">📸</span> Upload Image
               </button>
-              <input type="file" id="image-upload-input" accept="image/*" class="hidden-input">
+              <input type="file" id="image-upload-input" accept="image/*" class="hidden-input" multiple>
 
               <!-- Emoji dropdown trigger -->
               <div class="emoji-dropdown-wrapper">
@@ -194,8 +194,7 @@
 
             <!-- Selected Image Preview Container -->
             <div id="image-preview-container" class="image-preview-container hidden-view">
-              <img id="image-preview" src="" alt="Memory Image Preview">
-              <button id="btn-remove-image" class="btn-remove-image" title="Remove Image">×</button>
+              <!-- Dynamic thumbnails populated by JavaScript -->
             </div>
 
             <!-- Memory Text Area -->
