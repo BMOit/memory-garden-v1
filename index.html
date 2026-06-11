@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,13 +8,16 @@
   <!-- Google Fonts for cozy aesthetic: Outfit for headings, Nunito for rounded body text -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300..900;1,300..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300..900;1,300..900&family=Outfit:wght@100..900&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
 </head>
+
 <body>
   <div id="app-container">
-    
+
     <!-- ================= SIGN IN VIEW ================= -->
     <div id="view-signin" class="view active-view">
       <div class="signin-container">
@@ -34,7 +38,8 @@
                 <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
               </div>
               <div class="input-group">
-                <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+                <input type="password" id="login-password" placeholder="Password" required
+                  autocomplete="current-password">
               </div>
               <button type="submit" class="btn-primary">Sign In</button>
               <a href="#" class="forgot-link" id="link-forgot-password">Forgot password?</a>
@@ -88,11 +93,11 @@
               <input type="text" id="search-input" placeholder="Search memories...">
               <span class="mic-icon">🎤</span>
             </div>
-            
+
             <!-- Page title header (visible on other views) -->
-            <h2 id="topbar-page-title" class="view-title hidden-view">Plant a Memory</h2>
+            <h2 id="topbar-page-title" class="view-title hidden-view">Plant Memory</h2>
           </div>
-          
+
           <div class="topbar-right">
             <div class="leaf-counter">
               <span class="leaf-icon">🌱</span>
@@ -105,7 +110,7 @@
         </header>
 
         <!-- Dynamic Content Pages -->
-        
+
         <!-- 1. Home Dashboard View -->
         <div id="view-dashboard" class="view hidden-view">
           <div class="dashboard-grid">
@@ -204,13 +209,16 @@
 
             <!-- Memory Text Area -->
             <div class="textarea-container">
-              <input type="text" id="input-memory-title" class="memory-title-input" placeholder="Title your memory (e.g. Late Night Thoughts)..." required>
-              <textarea id="textarea-memory-body" class="memory-body-textarea" placeholder="Write your memory here..."></textarea>
+              <input type="text" id="input-memory-title" class="memory-title-input"
+                placeholder="Title your memory (e.g. Late Night Thoughts)..." required>
+              <textarea id="textarea-memory-body" class="memory-body-textarea"
+                placeholder="Write your memory here..."></textarea>
             </div>
 
             <!-- Main Submit Button -->
             <div class="submit-bar" style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
-              <button id="btn-delete-submit" class="btn-secondary logout-btn hidden-view" style="width: auto; min-width: 140px; margin-top: 0;">Delete Memory 🗑️</button>
+              <button id="btn-delete-submit" class="btn-secondary logout-btn hidden-view"
+                style="width: auto; min-width: 140px; margin-top: 0;">Delete Memory 🗑️</button>
               <button id="btn-plant-submit" class="btn-primary btn-plant">Plant Memory 🪴</button>
             </div>
           </div>
@@ -255,7 +263,8 @@
               <!-- Left Side: Avatar Display -->
               <div class="profile-left">
                 <div class="large-avatar-container">
-                  <img src="assets/bunny_mascot.png" alt="Profile Picture" class="profile-large-avatar" id="profile-display-avatar">
+                  <img src="assets/bunny_mascot.png" alt="Profile Picture" class="profile-large-avatar"
+                    id="profile-display-avatar">
                   <div class="avatar-overlay" id="btn-change-avatar">
                     <span>Change</span>
                   </div>
@@ -301,7 +310,7 @@
     <div id="memory-details-modal" class="modal-overlay hidden-view">
       <div class="modal-card">
         <button id="btn-close-modal" class="btn-close-modal" title="Close">×</button>
-        
+
         <!-- Single Memory View -->
         <div id="modal-single-view">
           <div class="modal-detail-layout">
@@ -331,11 +340,16 @@
 
         <!-- Day Details View (Multi Memories) -->
         <div id="modal-multi-view" class="hidden-view">
-          <div class="modal-multi-header" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
-            <h3 id="modal-multi-date" style="font-family: var(--font-serif); color: var(--text-primary); margin: 0; font-size: 1.5rem;">June 9, 2026</h3>
-            <span id="modal-multi-count" class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">3 memories</span>
+          <div class="modal-multi-header"
+            style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+            <h3 id="modal-multi-date"
+              style="font-family: var(--font-serif); color: var(--text-primary); margin: 0; font-size: 1.5rem;">June 9,
+              2026</h3>
+            <span id="modal-multi-count" class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">3
+              memories</span>
           </div>
-          <div id="modal-multi-body" class="modal-multi-body" style="max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; padding-right: 8px;">
+          <div id="modal-multi-body" class="modal-multi-body"
+            style="max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; padding-right: 8px;">
             <!-- Dynamic entries render here -->
           </div>
         </div>
@@ -345,4 +359,5 @@
 
   </div>
 </body>
+
 </html>
