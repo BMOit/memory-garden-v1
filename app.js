@@ -238,7 +238,7 @@ function saveProfileToStorage() {
 // Helper to keep headers, leaf-counters, and avatars in sync across all pages
 function syncLayoutState() {
   const flat = getFlatMemories();
-  
+
   // Update header counter
   const headerCount = document.getElementById("header-memory-count");
   if (headerCount) headerCount.textContent = flat.length;
@@ -256,7 +256,7 @@ function navigateTo(targetViewId, direction = "forward") {
   const updateDOM = () => {
     const signinEl = document.getElementById("view-signin");
     const shellEl = document.getElementById("main-shell");
-    
+
     if (targetViewId === "view-signin") {
       signinEl.classList.remove("hidden-view");
       signinEl.classList.add("active-view");
@@ -267,7 +267,7 @@ function navigateTo(targetViewId, direction = "forward") {
       signinEl.classList.remove("active-view");
       shellEl.classList.remove("hidden-view");
       shellEl.classList.add("active-view");
-      
+
       // Toggle specific subviews inside main-shell
       const subviews = ["view-dashboard", "view-plant", "view-my-garden", "view-mood", "view-profile"];
       subviews.forEach(viewId => {
@@ -282,24 +282,24 @@ function navigateTo(targetViewId, direction = "forward") {
           }
         }
       });
-      
+
       // Update topbar left dynamic content
       const searchWrapper = document.getElementById("topbar-search-wrapper");
       const pageTitle = document.getElementById("topbar-page-title");
-      
+
       if (targetViewId === "view-dashboard") {
         searchWrapper.classList.remove("hidden-view");
         pageTitle.classList.add("hidden-view");
       } else {
         searchWrapper.classList.add("hidden-view");
         pageTitle.classList.remove("hidden-view");
-        
+
         let titleText = "Memory Garden";
         if (targetViewId === "view-plant") titleText = "Plant a Memory";
         else if (targetViewId === "view-my-garden") titleText = "My Garden";
         else if (targetViewId === "view-mood") titleText = "Mood Calendar";
         else if (targetViewId === "view-profile") titleText = "Profile Settings";
-        
+
         pageTitle.textContent = titleText;
       }
     }
@@ -367,7 +367,7 @@ function createEntryCard(memory) {
           <h4 class="entry-title">${escapeHTML(memory.title)}</h4>
         </div>
         <div class="entry-meta">
-          <span class="entry-mood-badge">${escapeHTML(memory.moodWord || "happy")}</span>
+          ${memory.moodWord ? `<span class="entry-mood-badge">${escapeHTML(memory.moodWord)}</span>` : ""}
           <span class="entry-date">${dateFormatted}</span>
         </div>
       </div>
@@ -426,8 +426,8 @@ function renderDashboard(filterQuery = "") {
 
   // Filter memories safely
   const query = filterQuery.toLowerCase().trim();
-  const filteredMemories = flat.filter(m => 
-    (m.title || "").toLowerCase().includes(query) || 
+  const filteredMemories = flat.filter(m =>
+    (m.title || "").toLowerCase().includes(query) ||
     (m.body || "").toLowerCase().includes(query) ||
     (m.moodWord || "").toLowerCase().includes(query)
   );
@@ -471,23 +471,23 @@ function renderDashboard(filterQuery = "") {
 function calculateStreak() {
   const flat = getFlatMemories();
   if (flat.length === 0) return 0;
-  
+
   // Sort timestamps descending
   const dates = flat
     .map(m => new Date(m.timestamp).setHours(0, 0, 0, 0))
     .sort((a, b) => b - a);
-    
+
   const uniqueDates = [...new Set(dates)];
-  
+
   let streak = 0;
   let today = new Date().setHours(0, 0, 0, 0);
   let yesterday = today - 86400000;
-  
+
   // If the last entry was not today or yesterday, streak is broken
   if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) {
     return 0;
   }
-  
+
   let checkDate = uniqueDates[0];
   for (let i = 0; i < uniqueDates.length; i++) {
     if (uniqueDates[i] === checkDate) {
@@ -497,7 +497,7 @@ function calculateStreak() {
       break;
     }
   }
-  
+
   return streak;
 }
 
@@ -525,22 +525,22 @@ function renderUploadedImages() {
   const container = document.getElementById("image-preview-container");
   if (!container) return;
   container.innerHTML = "";
-  
+
   const images = state.currentUploadedImages || [];
   if (images.length === 0) {
     container.classList.add("hidden-view");
     return;
   }
-  
+
   container.classList.remove("hidden-view");
   images.forEach((imgSrc, index) => {
     const thumb = document.createElement("div");
     thumb.className = "image-preview-thumb";
-    
+
     const img = document.createElement("img");
     img.src = imgSrc;
     img.alt = "Memory preview thumbnail";
-    
+
     const removeBtn = document.createElement("button");
     removeBtn.className = "btn-remove-thumb";
     removeBtn.innerHTML = "×";
@@ -549,7 +549,7 @@ function renderUploadedImages() {
       e.stopPropagation();
       removeUploadedImageAtIndex(index);
     });
-    
+
     thumb.appendChild(img);
     thumb.appendChild(removeBtn);
     container.appendChild(thumb);
@@ -569,7 +569,7 @@ function resetPlantWorkspace() {
   state.currentSelectedEmoji = "🌸";
   state.currentUploadedImages = [];
   document.getElementById("selected-emoji-preview").textContent = `: ${state.currentSelectedEmoji}`;
-  
+
   renderUploadedImages();
 
   // Reset topbar page title if on Plant view
@@ -591,7 +591,7 @@ function setupEditWorkspace(memory) {
   document.getElementById("input-mood-desc").value = memory.moodWord || "";
   state.currentSelectedEmoji = memory.moodEmoji || "🌸";
   document.getElementById("selected-emoji-preview").textContent = `: ${state.currentSelectedEmoji}`;
-  
+
   state.currentUploadedImages = getAllImages(memory);
   renderUploadedImages();
 
@@ -614,10 +614,10 @@ function renderMyGarden(filterQuery = "") {
 
   const flat = getFlatMemories();
   const query = filterQuery.toLowerCase().trim();
-  const filteredMemories = flat.filter(m => 
-    m.title.toLowerCase().includes(query) || 
+  const filteredMemories = flat.filter(m =>
+    m.title.toLowerCase().includes(query) ||
     m.body.toLowerCase().includes(query) ||
-    m.moodWord.toLowerCase().includes(query)
+    (m.moodWord || "").toLowerCase().includes(query)
   );
 
   filteredMemories.sort((a, b) => b.timestamp - a.timestamp);
@@ -650,7 +650,7 @@ function renderMoodCalendar() {
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
-  
+
   const headerEl = document.getElementById("calendar-month-year");
   if (headerEl) {
     headerEl.textContent = `${monthNames[month]} ${year}`;
@@ -803,7 +803,7 @@ function openMemoryDetailsModal(memory) {
             <div class="modal-title-meta">
               <h3>${escapeHTML(memory.title)}</h3>
               <div class="modal-meta-row">
-                <span class="entry-mood-badge">${escapeHTML(memory.moodWord || "happy")}</span>
+                ${memory.moodWord ? `<span class="entry-mood-badge">${escapeHTML(memory.moodWord)}</span>` : ""}
                 <span class="modal-date">${dateFormatted}</span>
               </div>
             </div>
@@ -841,7 +841,7 @@ function openMemoryDetailsModal(memory) {
             <div class="modal-title-meta">
               <h3>${escapeHTML(memory.title)}</h3>
               <div class="modal-meta-row">
-                <span class="entry-mood-badge">${escapeHTML(memory.moodWord || "happy")}</span>
+                ${memory.moodWord ? `<span class="entry-mood-badge">${escapeHTML(memory.moodWord)}</span>` : ""}
                 <span class="modal-date">${dateFormatted}</span>
               </div>
             </div>
@@ -921,7 +921,7 @@ function openDayDetailsModal(dayMemories, dateStr) {
                   <h4 class="modal-day-entry-title">${escapeHTML(memory.title)}</h4>
                   <span class="modal-day-entry-time">${timeFormatted}</span>
                 </div>
-                <span class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">${escapeHTML(memory.moodWord || "happy")}</span>
+                ${memory.moodWord ? `<span class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">${escapeHTML(memory.moodWord)}</span>` : ""}
               </div>
             </div>
             <p class="modal-day-entry-body">${escapeHTML(memory.body)}</p>
@@ -940,7 +940,7 @@ function openDayDetailsModal(dayMemories, dateStr) {
               <h4 class="modal-day-entry-title">${escapeHTML(memory.title)}</h4>
               <span class="modal-day-entry-time">${timeFormatted}</span>
             </div>
-            <span class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">${escapeHTML(memory.moodWord || "happy")}</span>
+            ${memory.moodWord ? `<span class="entry-mood-badge" style="margin-top: 4px; display: inline-block;">${escapeHTML(memory.moodWord)}</span>` : ""}
           </div>
         </div>
         <p class="modal-day-entry-body">${escapeHTML(memory.body)}</p>
@@ -987,17 +987,17 @@ function setupEventListeners() {
       const targetView = item.getAttribute("data-view");
       if (targetView) {
         e.preventDefault();
-        
+
         if (targetView === "plant") {
           state.editingMemoryId = null;
         }
-        
+
         // Remove active class from other items
         navItems.forEach(ni => ni.classList.remove("active"));
         if (!item.classList.contains("logout-link")) {
           item.classList.add("active");
         }
-        
+
         // Navigate
         navigateTo(`view-${targetView}`, "forward");
       }
@@ -1011,7 +1011,7 @@ function setupEventListeners() {
       navigateTo("view-signin", "backward");
     });
   });
-  
+
   document.getElementById("btn-logout-profile").addEventListener("click", (e) => {
     e.preventDefault();
     navigateTo("view-signin", "backward");
@@ -1108,7 +1108,7 @@ function setupEventListeners() {
   // Emoji Popover Trigger
   const emojiBtn = document.getElementById("btn-toggle-emoji");
   const emojiPopover = document.getElementById("emoji-popover");
-  
+
   emojiBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     emojiPopover.classList.toggle("active");
@@ -1133,7 +1133,7 @@ function setupEventListeners() {
   const saveMemory = () => {
     const title = document.getElementById("input-memory-title").value.trim();
     const body = document.getElementById("textarea-memory-body").value.trim();
-    const moodWord = document.getElementById("input-mood-desc").value.trim() || "happy";
+    const moodWord = document.getElementById("input-mood-desc").value.trim();
 
     if (!title) {
       alert("Please title your memory 🌸");
@@ -1161,7 +1161,7 @@ function setupEventListeners() {
           }
         }
       }
-      
+
       if (updated) {
         saveMemoriesToStorage();
         state.editingMemoryId = null;
@@ -1261,7 +1261,7 @@ function setupEventListeners() {
   const formProfile = document.getElementById("form-profile");
   formProfile.addEventListener("submit", (e) => {
     e.preventDefault();
-    
+
     state.profile.username = document.getElementById("profile-username").value.trim();
     state.profile.dob = document.getElementById("profile-dob").value;
     state.profile.email = document.getElementById("profile-email").value.trim();
@@ -1281,7 +1281,7 @@ function compressImage(file, maxDim, quality, callback) {
       const canvas = document.createElement("canvas");
       let width = img.width;
       let height = img.height;
-      
+
       if (width > maxDim || height > maxDim) {
         if (width > height) {
           height = Math.round((height * maxDim) / width);
@@ -1291,12 +1291,12 @@ function compressImage(file, maxDim, quality, callback) {
           height = maxDim;
         }
       }
-      
+
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
-      
+
       const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
       callback(compressedDataUrl);
     };
@@ -1307,7 +1307,7 @@ function compressImage(file, maxDim, quality, callback) {
 
 function escapeHTML(str) {
   if (!str) return "";
-  return str.replace(/[&<>'"]/g, 
+  return str.replace(/[&<>'"]/g,
     tag => ({
       '&': '&amp;',
       '<': '&lt;',
