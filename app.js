@@ -1199,7 +1199,6 @@ function setupEventListeners() {
   };
 
   document.getElementById("btn-plant-submit").addEventListener("click", saveMemory);
-  document.getElementById("btn-bookmark-save").addEventListener("click", saveMemory);
 
   const btnDelete = document.getElementById("btn-delete-submit");
   if (btnDelete) {
