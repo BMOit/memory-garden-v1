@@ -2,29 +2,7 @@
    Memory Garden JS Logic - SPA Routing, localStorage State, and Animations
    ========================================================================== */
 
-// --- Default Mock Data ---
-const DEFAULT_MEMORIES = [
-  {
-    id: "memory-1",
-    title: "Late Night Thoughts",
-    body: "Today felt exhausting, but I learned something... There is a strange comfort in knowing that progress isn't always linear. Each leaf grows at its own pace.",
-    date: "June 9, 2026",
-    timestamp: Date.now() - 3600000 * 2, // 2 hours ago
-    moodEmoji: "🌙",
-    moodWord: "thoughtful",
-    image: null
-  },
-  {
-    id: "memory-2",
-    title: "Morning cup of tea",
-    body: "Today started with a good news... A gentle breeze, warm chamomile tea, and the sweet smell of morning mist. The garden looks peaceful.",
-    date: "June 8, 2026",
-    timestamp: Date.now() - 86400000 - 3600000 * 8, // Yesterday
-    moodEmoji: "☀️",
-    moodWord: "peaceful",
-    image: null
-  }
-];
+const DEFAULT_MEMORIES = [];
 
 const DEFAULT_PROFILE = {
   username: "Bunny Gardener",
