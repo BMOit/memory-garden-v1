@@ -469,13 +469,20 @@ button {
 }
 
 /* Dashboard Content Grid */
-.dashboard-grid,
-#view-plant,
-#view-profile {
+.dashboard-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 30px;
   align-items: start;
+}
+
+/* Plant Memory & Settings: centered single-column layout */
+#view-plant,
+#view-profile {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 /* Left side list of entries */
@@ -694,6 +701,7 @@ button {
   padding: 32px;
   box-shadow: 0 4px 15px rgba(140, 103, 171, 0.03);
   width: 100%;
+  max-width: 680px;
   display: flex;
   flex-direction: column;
   gap: 24px;
