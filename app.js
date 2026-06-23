@@ -158,7 +158,16 @@ function getFlatMemories() {
 document.addEventListener("DOMContentLoaded", () => {
   initData();
   setupEventListeners();
-  renderDashboard();
+
+  // Restore session: if user was previously logged in, skip the sign-in screen
+  const isLoggedIn = localStorage.getItem("mg_isLoggedIn") === "true";
+  const lastView = localStorage.getItem("mg_lastView") || "view-dashboard";
+
+  if (isLoggedIn) {
+    navigateTo(lastView);
+  } else {
+    renderDashboard();
+  }
 });
 
 // --- Data Management (localStorage) ---
@@ -231,6 +240,10 @@ function syncLayoutState() {
 
 // --- Navigation Controller (View Swapping + Transitions) ---
 function navigateTo(targetViewId, direction = "forward") {
+  // Persist the current view so refresh restores it
+  if (targetViewId !== "view-signin") {
+    localStorage.setItem("mg_lastView", targetViewId);
+  }
   const updateDOM = () => {
     const signinEl = document.getElementById("view-signin");
     const shellEl = document.getElementById("main-shell");
@@ -955,6 +968,9 @@ function setupEventListeners() {
   const formLogin = document.getElementById("form-login");
   formLogin.addEventListener("submit", (e) => {
     e.preventDefault();
+    // Persist login session so refresh keeps the user logged in
+    localStorage.setItem("mg_isLoggedIn", "true");
+    localStorage.setItem("mg_lastView", "view-dashboard");
     navigateTo("view-dashboard", "forward");
   });
 
@@ -983,17 +999,19 @@ function setupEventListeners() {
   });
 
   // Logout actions
+  const handleLogout = (e) => {
+    e.preventDefault();
+    // Clear persisted session so refresh goes back to login
+    localStorage.removeItem("mg_isLoggedIn");
+    localStorage.removeItem("mg_lastView");
+    navigateTo("view-signin", "backward");
+  };
+
   document.querySelectorAll(".logout-link").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      navigateTo("view-signin", "backward");
-    });
+    btn.addEventListener("click", handleLogout);
   });
 
-  document.getElementById("btn-logout-profile").addEventListener("click", (e) => {
-    e.preventDefault();
-    navigateTo("view-signin", "backward");
-  });
+  document.getElementById("btn-logout-profile").addEventListener("click", handleLogout);
 
   // Topbar Profile Avatar Action
   document.querySelectorAll(".profile-avatar-btn").forEach(btn => {
