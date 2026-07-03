@@ -358,12 +358,18 @@ button {
 }
 
 .logout-link {
-  color: var(--text-secondary);
+  color: #c95151;
+  background: rgba(201, 81, 81, 0.06);
+  border: 1.5px solid rgba(201, 81, 81, 0.12);
+  margin-top: 8px;
 }
 
 .logout-link:hover {
-  background: rgba(230, 75, 75, 0.08);
-  color: #d15656;
+  background: rgba(201, 81, 81, 0.12);
+  color: #b33a3a;
+  border-color: rgba(201, 81, 81, 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(201, 81, 81, 0.08);
 }
 
 /* Main Content Styling */
